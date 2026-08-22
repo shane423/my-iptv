@@ -7,7 +7,7 @@ ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live
 # 2. 精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_kodi_stream_switch():
+def clean_and_merge_kodi_failover():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -80,7 +80,7 @@ def clean_and_merge_kodi_stream_switch():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 第三階段：輸出為 Kodi 影像串流多路徑切換格式
+    # 第三階段：輸出為 Kodi 標準的單標頭多網址 Failover 堆疊格式
     output = ["#EXTM3U"]
     unique_channel_count = 0
     
@@ -94,28 +94,20 @@ def clean_and_merge_kodi_stream_switch():
             
         unique_channel_count += 1
         
-        # 1. 寫入唯一的電視台名稱（保證主畫面列表不重複）
+        # 1. 核心精隨：這個電視台名稱「只會印出一次」#EXTINF 標頭
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
         
-        # 2. 【關鍵修正】：強制 Kodi 啟用 adaptive 插件來讀取多線路
-        output.append('#KODIPROP:inputstream=inputstream.adaptive')
-        output.append('#KODIPROP:inputstream.adaptive.manifest_type=hls')
-        
-        # 3. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (從 1 開始編號)
-        if len(urls) > 1:
-            for idx, alt_url in enumerate(urls[1:], start=1):
-                output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
-        
-        # 4. 寫入第一條主線路的網址
-        output.append(urls[0])
+        # 2. 將所有的備用網址緊接著排在下方
+        for url in urls:
+            output.append(url)
 
     # 寫入最終成品檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【Kodi 終極格式優化完成！】")
-    print(f"已加入解碼器宣告。主列表獨立頻道共：{unique_channel_count} 個。")
+    print(f"\n【Kodi 原生 Failover 優化完成！】")
+    print(f"成功合併重複線路，頻道主列表獨立頻道共：{unique_channel_count} 個。")
 
 if __name__ == "__main__":
-    clean_and_merge_kodi_stream_switch()
+    clean_and_merge_kodi_failover()
