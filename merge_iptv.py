@@ -1,20 +1,20 @@
 import re
 import requests
 
-# 1. 原始 M3U 直播源
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
-# 2. 保留的 6 大分組
+# 2. 您指定要精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_kodi_strict():
+def clean_and_merge_kodi_adaptive():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(ORIGINAL_URL, headers=headers, timeout=30)
         response.encoding = 'utf-8' 
         if response.status_code != 200:
-            print(f"錯誤，HTTP 狀態碼: {response.status_code}")
+            print(f"錯誤：無法連線直播源，HTTP 狀態碼: {response.status_code}")
             return
         lines = response.text.splitlines()
     except Exception as e:
@@ -25,7 +25,9 @@ def clean_and_merge_kodi_strict():
     current_group = None
     current_clean_name = None
     current_raw_name = None
-    
+
+    print("開始針對原始 M3U 進行超精準名稱清洗...")
+
     for line in lines:
         line = line.strip()
         if not line or line.startswith("#EXTM3U"):
@@ -43,6 +45,8 @@ def clean_and_merge_kodi_strict():
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
+                
+                # 強力清洗名稱雜質
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
                 clean_name = re.sub(r'[\s\(\（\[]+\d+[\s\)\）\]]+', '', clean_name)
@@ -76,7 +80,7 @@ def clean_and_merge_kodi_strict():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 【核心變更】：輸出 Kodi 識別的「單一頻道+多線路附加」格式
+    # 第三階段：使用 Kodi 認證的 KODIPROP 備用路徑語法進行輸出
     output = ["#EXTM3U"]
     unique_channel_count = 0
     
@@ -90,20 +94,24 @@ def clean_and_merge_kodi_strict():
             
         unique_channel_count += 1
         
-        # 寫法：只輸出一個主標頭，後續線路用特殊的 Kodi 屬性標記為備用
-        for idx, url in enumerate(urls):
-            if idx == 0:
-                # 主線路：標準輸出
-                output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
-            else:
-                # 備用線路：加上 Kodi 專屬的屬性，告訴 Kodi 這是同一個頻道的第 N 條線路
-                output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}" channel-lineup="備用線路{idx}",{clean_name}')
-            output.append(url)
+        # 1. 寫入基本電視台資訊
+        output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
+        
+        # 2. 如果這台有複數線路，利用 KODIPROP 將線路 2、3、4 綁定在背後 (必須從 1 開始編號)
+        if len(urls) > 1:
+            for idx, alt_url in enumerate(urls[1:], start=1):
+                output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
+        
+        # 3. 最後寫入第 1 條主線路網址
+        output.append(urls[0])
 
-    with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
+    # 寫入最終成品檔案
+    output_filename = "taiwan_live.m3u"
+    with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"精準對齊優化完成！共輸出 {unique_channel_count} 個獨立頻道。")
+    print(f"\n【Kodi 終極多路徑融合優化完成！】")
+    print(f"成功透過 KODIPROP 綁定備用線路，共輸出 {unique_channel_count} 個獨立頻道。")
 
 if __name__ == "__main__":
-    clean_and_merge_kodi_strict()
+    clean_and_merge_kodi_adaptive()
