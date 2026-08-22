@@ -49,7 +49,7 @@ def clean_and_merge_kodi_stream_switch():
                 # 強力清洗名稱雜質
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
-                clean_name = re.sub(r'[\s\(\（\[]+\d+[\s\)\）\]]+', '', clean_name)
+                clean_name = re.sub(r'[\s\(\（\[]+\d+[\s\)\營\]]+', '', clean_name)
                 clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
                 clean_name = clean_name.strip()
                 
@@ -97,13 +97,12 @@ def clean_and_merge_kodi_stream_switch():
         # 1. 寫入唯一的電視台名稱（保證主畫面列表不重複）
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
         
-        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (必須從 1 開始編號)
-        # 修正漏洞：修正寫入格式，確保為純網址字串
+        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (從 1 開始編號)
         if len(urls) > 1:
             for idx, alt_url in enumerate(urls[1:], start=1):
                 output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
         
-        # 3. 寫入第 1 條主線路網址（純字串，非陣列）
+        # 3. 【已修正漏洞】：這裡必須寫入第一條主線路的「網址字串」，而不是整個 urls 陣列
         output.append(urls[0])
 
     # 寫入最終成品檔案
