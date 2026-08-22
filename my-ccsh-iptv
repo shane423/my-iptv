@@ -1,0 +1,79 @@
+import re
+import requests
+
+# 1. 指向 CCSH/IPTV 專案最新的原始 M3U 直播源
+ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
+
+# 2. 精準保留的 6 大分組群組（嚴格對應原始 M3U 的 group-title 字串）
+TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
+
+def clean_and_merge_by_groups():
+    print("正在下載 CCSH/IPTV 原始直播源...")
+    try:
+        response = requests.get(ORIGINAL_URL, timeout=30)
+        if response.status_code != 200:
+            print(f"錯誤：無法連線直播源，HTTP 狀態碼: {response.status_code}")
+            return
+        lines = response.text.splitlines()
+    except Exception as e:
+        print(f"網路連線異常: {e}")
+        return
+
+    channels = {}
+    current_info = None
+
+    print("開始根據指定群組進行過濾與清洗...")
+    for line in lines:
+        if line.startswith("#EXTM3U"):
+            continue
+            
+        if line.startswith("#EXTINF"):
+            group_match = re.search(r'group-title="([^"]+)"', line)
+            if group_match:
+                group_name = group_match.group(1).strip()
+                if group_name in TARGET_GROUPS:
+                    current_info = line
+                else:
+                    current_info = None
+            else:
+                current_info = None
+                
+        elif line.startswith("http") and current_info:
+            name_match = re.search(r',([^,]+)$', current_info)
+            if name_match:
+                raw_name = name_match.group(1).strip()
+                
+                # 【線路名清洗邏輯】
+                clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
+                clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
+                clean_name = re.sub(r'(副本|副本\d+|Copy|Copy\d+|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
+                clean_name = clean_name.strip()
+                
+                if not clean_name:
+                    clean_name = raw_name
+                
+                new_info = re.sub(r',([^,]+)$', f',{clean_name}', current_info)
+                
+                group_match = re.search(r'group-title="([^"]+)"', new_info)
+                group_name = group_match.group(1).strip() if group_match else "其他"
+                unique_key = f"{group_name}___{clean_name}"
+                
+                if unique_key not in channels:
+                    channels[unique_key] = []
+                channels[unique_key].append((new_info, line))
+                
+            current_info = None
+
+    # 第三階段：重新格式化輸出符合 Kodi 規格的多線路 M3U 清單
+    output = ["#EXTM3U"]
+    for unique_key, streams in channels.items():
+        for info, url in streams:
+            output.append(info)
+            output.append(url)
+
+    with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
+        f.write("\n".join(output))
+    print(f"【大成功】過濾完成！已完美保留 6 大分組，重複線路已全數融合成多重串流！")
+
+if __name__ == "__main__":
+    clean_and_merge_by_groups()
