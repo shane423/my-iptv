@@ -20,7 +20,7 @@ def clean_and_smart_select():
         print(f"網路連線異常: {e}")
         return
 
-    # 用來暫存同一個頻道的所有線路，之後進行智慧評分篩選
+    # 用來暫存同一個頻道的所有線路
     channel_groups = {}
     current_info = None
 
@@ -65,7 +65,7 @@ def clean_and_smart_select():
                 if unique_key not in channel_groups:
                     channel_groups[unique_key] = []
                 
-                # 將這條線路的資訊、網址以及它原本排在清單的第幾條（原始順序）存起來
+                # 將每條線路存入陣列
                 channel_groups[unique_key].append({
                     "info": new_info,
                     "url": line,
@@ -74,47 +74,51 @@ def clean_and_smart_select():
                 
             current_info = None
 
-    # 第二階段：智慧線路挑選引擎（核心優化）
+    # 第二階段：強制定位篩選引擎
     output = ["#EXTM3U"]
-    print("第二階段：智慧篩選最優質、高成功率的唯一活線路...")
+    print("第二階段：強制鎖定高成功率線路...")
     
     for unique_key, streams in channel_groups.items():
         best_stream = None
         
-        # 如果只有一條線路，直接保留
-        if len(streams) == 1:
-            best_stream = streams[0]
-        else:
-            # 如果有多條線路（例如 TVBS 有 5 條），我們進行智慧特徵評分：
-            highest_score = -100
+        # 【深度優化防線】：將 key 轉為小寫，確保完全鎖定 TVBS 主頻道與 TVBS新聞台家族
+        upper_key = unique_key.upper()
+        if "TVBS" in upper_key:
+            # 優先尋找名稱中包含 "3"、"-3" 的項目
             for stream in streams:
-                score = 0
-                url = stream["url"]
-                r_name = stream["raw_name"]
-                
-                # 特徵 1：根據大數據，排在第 3 條或後面的特定轉播分流通常更穩定
-                # 原始名稱帶有 (3)、-3 或是符合您說的「第三個可以看」，給予加分
-                if "3" in r_name or "-3" in r_name or "(3)" in r_name:
-                    score += 50
-                if "4" in r_name or "-4" in r_name or "(4)" in r_name:
-                    score += 30
-                
-                # 特徵 2：優先排除排在最前面且極易掛掉的公共測試多播源 (1) 或 2
-                if " (2)" in r_name or "-2" in r_name or " (1)" in r_name:
-                    score -= 20
-                
-                # 特徵 3：網址如果帶有特定數字分流、或者是高品質高畫質標籤，給予加分
-                if any(x in url for x in ["/163189/", "cdn", "live", "stream"]):
-                    score += 40
-                if any(x in r_name for x in ["藍光", "1080", "4K", "HD"]):
-                    score += 10
-                    
-                # 挑選出評分最高（最可能是活線路）的那一條
-                if score > highest_score:
-                    highest_score = score
+                if "3" in stream["raw_name"] or "-3" in stream["raw_name"]:
                     best_stream = stream
+                    break
+            
+            # 如果名字被作者改掉或找不到帶 3 的，就直接強行抓取第 3 個元素（索引值 2）
+            if not best_stream and len(streams) >= 3:
+                best_stream = streams[2]
+                
+        # 如果不是 TVBS 家族，或者上述特殊規則沒抓到，則執行一般頻道的最佳化挑選
+        if not best_stream:
+            if len(streams) == 1:
+                best_stream = streams[0]
+            else:
+                highest_score = -100
+                for stream in streams:
+                    score = 0
+                    url = stream["url"]
+                    r_name = stream["raw_name"]
                     
-        # 如果找不到最優的（極端情況），就拿第一條保底
+                    if "3" in r_name or "-3" in r_name:
+                        score += 50
+                    if " (2)" in r_name or "-2" in r_name or " (1)" in r_name:
+                        score -= 20
+                    if any(x in url for x in ["/163189/", "cdn", "live", "stream"]):
+                        score += 40
+                    if any(x in r_name for x in ["藍光", "1080", "4K", "HD"]):
+                        score += 10
+                        
+                    if score > highest_score:
+                        highest_score = score
+                        best_stream = stream
+
+        # 最終保底機制
         if not best_stream:
             best_stream = streams[0]
             
@@ -124,7 +128,7 @@ def clean_and_smart_select():
     # 第三階段：寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【智慧優化完成】已為您精準過濾死線，每個電視台僅保留評分最高的最穩線路！")
+    print(f"【TVBS全線鎖定完成】共有 {len(channel_groups)} 個精選頻道成功輸出。")
 
 if __name__ == "__main__":
     clean_and_smart_select()
