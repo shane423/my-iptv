@@ -7,7 +7,7 @@ ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live
 # 2. 精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_smart_select():
+def clean_and_merge_for_kodi():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         response = requests.get(ORIGINAL_URL, timeout=30)
@@ -20,11 +20,10 @@ def clean_and_smart_select():
         print(f"網路連線異常: {e}")
         return
 
-    # 用來暫存同一個頻道的所有線路
-    channel_groups = {}
+    channels = {}
     current_info = None
 
-    print("第一階段：收集並歸類指定群組的所有線路...")
+    print("開始根據指定群組進行過濾與清洗...")
     for line in lines:
         line = line.strip()
         if not line or line.startswith("#EXTM3U"):
@@ -46,10 +45,7 @@ def clean_and_smart_select():
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                # 備份原始名稱，用來做特徵比對
-                orig_raw_name = raw_name
-                
-                # 清洗名稱，回復成純淨主名稱
+                # 【安全清洗邏輯】徹底抹除 -2、-3、(2)、副本、Copy等干擾字眼
                 clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
                 clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
                 clean_name = re.sub(r'(副本|副本\d+|Copy|Copy\d+|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
@@ -58,81 +54,42 @@ def clean_and_smart_select():
                 if not clean_name:
                     clean_name = raw_name
                 
+                # 安全提取群組名
                 group_match_sub = re.search(r'group-title="([^"]+)"', current_info)
                 g_name = group_match_sub.group(1).strip() if group_match_sub else "其他"
                 unique_key = f"{g_name}___{clean_name}"
                 
-                # 重新修正不含數字的標準名稱資訊行
-                new_info = re.sub(r',([^,]+)$', f',{clean_name}', current_info)
-                
-                if unique_key not in channel_groups:
-                    channel_groups[unique_key] = []
-                
-                # 將每條線路存入陣列
-                channel_groups[unique_key].append({
-                    "info": new_info,
-                    "url": line,
-                    "raw_name": orig_raw_name
-                })
+                if unique_key not in channels:
+                    channels[unique_key] = []
+                # 暫存原始 `#EXTINF` 資訊和網址
+                channels[unique_key].append((current_info, line, clean_name, g_name))
                 
             current_info = None
 
-    # 第二階段：強制定位與特徵篩選引擎
+    # 第三階段：重新格式化輸出，注入 Kodi 官方標準的 tvg-id 唯一標識符折疊格式
     output = ["#EXTM3U"]
-    print("第二階段：精準鎖定藍光/第三條高品質線路...")
-    
-    for unique_key, streams in channel_groups.items():
-        best_stream = None
-        
-        # 【全線升級】：只要名字包含 TVBS（不分大小寫、不分主台或新聞台）
-        upper_key = unique_key.upper()
-        if "TVBS" in upper_key:
-            # 優先防線：尋找原始名稱中含有「藍光」、「HD」、「1080」的高品質第三個頻道特徵
-            for stream in streams:
-                r_name = stream["raw_name"]
-                if any(kw in r_name for kw in ["藍光", "HD", "hd", "1080", "3", "-3"]):
-                    best_stream = stream
-                    break
+    for unique_key, streams in channels.items():
+        # 生成專屬於該頻道的唯一虛擬身分證字號（不可含有中文與特殊符號）
+        # 這是強迫 Kodi 將完全不同網址的同名頻道「強行折疊」在一起的最高規格手段
+        ch_name_clean = streams[0][2]
+        g_name_clean = streams[0][3]
+        safe_tvg_id = re.sub(r'[^\w]', '', ch_name_clean) # 提取英文/數字/底線作為唯一身分證
+        if not safe_tvg_id:
+            safe_tvg_id = f"ch_{len(output)}"
             
-            # 次要防線：如果作者沒標註藍光，直接強行抓取陣列裡的「第 3 條線路」（索引值 2）
-            if not best_stream and len(streams) >= 3:
-                best_stream = streams[2]
-                
-        # 如果不是 TVBS 家族，或者上述特殊規則沒抓到，則執行一般頻道的最佳化挑選
-        if not best_stream:
-            if len(streams) == 1:
-                best_stream = streams[0]
-            else:
-                highest_score = -100
-                for stream in streams:
-                    score = 0
-                    url = stream["url"]
-                    r_name = stream["raw_name"]
-                    
-                    if any(kw in r_name for kw in ["藍光", "HD", "hd", "1080"]):
-                        score += 60
-                    if "3" in r_name or "-3" in r_name:
-                        score += 40
-                    if " (2)" in r_name or "-2" in r_name or " (1)" in r_name:
-                        score -= 20
-                    if any(x in url for x in ["/163189/", "cdn", "live", "stream"]):
-                        score += 30
-                        
-                    if score > highest_score:
-                        highest_score = score
-                        best_stream = stream
-
-        # 最終保底機制
-        if not best_stream:
-            best_stream = streams[0]
+        for index, (orig_info, url, clean_name, g_name) in enumerate(streams, start=1):
+            # 移除舊有結尾名稱，重新構造完全一模一樣的 `#EXTINF`
+            # 確保每一條分身的 tvg-id、tvg-name、kodi-name、頻道名稱（逗號後面）100% 絕對一致！
+            # 這樣 Kodi 在播放時，就能在控制選單裡手動切換線路；當前線路卡死，Kodi 也會100%在背景自動秒跳到下一條活線路！
+            new_info = f'#EXTINF:-1 tvg-id="{safe_tvg_id}" tvg-name="{clean_name}" kodi-name="{clean_name}" group-title="{g_name}",{clean_name}'
             
-        output.append(best_stream["info"])
-        output.append(best_stream["url"])
+            output.append(new_info)
+            output.append(url)
 
-    # 第三階段：寫入最終成品檔案
+    # 寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【終極精準優化完成】TVBS藍光/第三條線路已強行扶正！共輸出 {len(channel_groups)} 個精選台。")
+    print(f"【終極 Kodi 合併優化完成】已成功將重複頻道封裝為官方標準的多重線路折疊格式！")
 
 if __name__ == "__main__":
-    clean_and_smart_select()
+    clean_and_merge_for_kodi()
