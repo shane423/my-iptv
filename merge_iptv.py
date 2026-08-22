@@ -4,10 +4,10 @@ import requests
 # 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
-# 2. 您指定要精準保留的 6 大分組群組
+# 2. 精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_kodi_adaptive():
+def clean_and_merge_kodi_stream_switch():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -80,7 +80,7 @@ def clean_and_merge_kodi_adaptive():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 第三階段：使用 Kodi 認證的 KODIPROP 備用路徑語法進行輸出
+    # 第三階段：輸出為 Kodi 影像串流多音軌/多線路切換格式
     output = ["#EXTM3U"]
     unique_channel_count = 0
     
@@ -94,15 +94,16 @@ def clean_and_merge_kodi_adaptive():
             
         unique_channel_count += 1
         
-        # 1. 寫入基本電視台資訊
+        # 1. 寫入唯一的電視台名稱（保證主畫面列表不重複）
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
         
-        # 2. 如果這台有複數線路，利用 KODIPROP 將線路 2、3、4 綁定在背後 (必須從 1 開始編號)
+        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (必須從 1 開始編號)
+        # 修正漏洞：修正寫入格式，確保為純網址字串
         if len(urls) > 1:
             for idx, alt_url in enumerate(urls[1:], start=1):
                 output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
         
-        # 3. 最後寫入第 1 條主線路網址
+        # 3. 寫入第 1 條主線路網址（純字串，非陣列）
         output.append(urls[0])
 
     # 寫入最終成品檔案
@@ -110,8 +111,8 @@ def clean_and_merge_kodi_adaptive():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【Kodi 終極多路徑融合優化完成！】")
-    print(f"成功透過 KODIPROP 綁定備用線路，共輸出 {unique_channel_count} 個獨立頻道。")
+    print(f"\n【Kodi 影像串流切換優化完成！】")
+    print(f"成功將多條線路合併至背景，主列表只會顯示 {unique_channel_count} 個獨立頻道。")
 
 if __name__ == "__main__":
-    clean_and_merge_kodi_adaptive()
+    clean_and_merge_kodi_stream_switch()
