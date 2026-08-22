@@ -7,7 +7,7 @@ ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live
 # 2. 精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_for_kodi():
+def clean_and_merge_pipe_format():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         response = requests.get(ORIGINAL_URL, timeout=30)
@@ -45,7 +45,7 @@ def clean_and_merge_for_kodi():
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                # 【安全清洗邏輯】徹底抹除 -2、-3、(2)、副本、Copy等干擾字眼
+                # 【安全清洗邏輯】徹底抹除 -2、-3、(2)、副本、Copy、HD、藍光等字眼
                 clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
                 clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
                 clean_name = re.sub(r'(副本|副本\d+|Copy|Copy\d+|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
@@ -59,37 +59,42 @@ def clean_and_merge_for_kodi():
                 g_name = group_match_sub.group(1).strip() if group_match_sub else "其他"
                 unique_key = f"{g_name}___{clean_name}"
                 
+                # 重新構造完全純淨無雜質的 `#EXTINF` 資訊行
+                new_info = f'#EXTINF:-1 group-title="{g_name}",{clean_name}'
+                
+                # 【核心變更】：將同一個頻道的所有不同網址，通通收集到同一個陣列裡
                 if unique_key not in channels:
-                    channels[unique_key] = []
-                # 暫存原始 `#EXTINF` 資訊和網址
-                channels[unique_key].append((current_info, line, clean_name, g_name))
+                    channels[unique_key] = {"info": new_info, "urls": []}
+                
+                # 為了確保「第三個可以看」的順暢度，我們進行智慧排序：
+                # 網址如果含有藍光、HD、或是原本排在後面的，我們用 insert(0) 讓它排在最前面優先加載
+                if any(kw in raw_name for kw in ["藍光", "HD", "hd", "1080", "3", "-3"]):
+                    channels[unique_key]["urls"].insert(0, line)
+                else:
+                    channels[unique_key]["urls"].append(line)
                 
             current_info = None
 
-    # 第三階段：重新格式化輸出，注入 Kodi 官方標準的 tvg-id 唯一標識符折疊格式
+    # 第三階段：重新格式化輸出為「多路徑備用管道格式」
     output = ["#EXTM3U"]
-    for unique_key, streams in channels.items():
-        # 生成專屬於該頻道的唯一虛擬身分證字號（不可含有中文與特殊符號）
-        # 這是強迫 Kodi 將完全不同網址的同名頻道「強行折疊」在一起的最高規格手段
-        ch_name_clean = streams[0][2]
-        g_name_clean = streams[0][3]
-        safe_tvg_id = re.sub(r'[^\w]', '', ch_name_clean) # 提取英文/數字/底線作為唯一身分證
-        if not safe_tvg_id:
-            safe_tvg_id = f"ch_{len(output)}"
-            
-        for index, (orig_info, url, clean_name, g_name) in enumerate(streams, start=1):
-            # 移除舊有結尾名稱，重新構造完全一模一樣的 `#EXTINF`
-            # 確保每一條分身的 tvg-id、tvg-name、kodi-name、頻道名稱（逗號後面）100% 絕對一致！
-            # 這樣 Kodi 在播放時，就能在控制選單裡手動切換線路；當前線路卡死，Kodi 也會100%在背景自動秒跳到下一條活線路！
-            new_info = f'#EXTINF:-1 tvg-id="{safe_tvg_id}" tvg-name="{clean_name}" kodi-name="{clean_name}" group-title="{g_name}",{clean_name}'
-            
-            output.append(new_info)
-            output.append(url)
+    for unique_key, ch_data in channels.items():
+        info = ch_data["info"]
+        
+        # 去除重複的網址網頁
+        unique_urls = list(dict.fromkeys(ch_data["urls"]))
+        
+        # 【終極多路徑融合】：利用管道符號 | 將多條線路黏成唯一一行！
+        # 格式範例：http://線路1.m3u8|http://線路2.m3u8|http://線路3.m3u8
+        # 這樣在 M3U 檔案裡，這個電視台就真的「只有一行」，Kodi 絕無可能再次展開它！
+        merged_url = "|".join(unique_urls)
+        
+        output.append(info)
+        output.append(merged_url)
 
     # 寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【終極 Kodi 合併優化完成】已成功將重複頻道封裝為官方標準的多重線路折疊格式！")
+    print(f"【管道多路徑備用優化完成】已成功將所有重複頻道精準黏合！共輸出 {len(channels)} 個唯一頻道。")
 
 if __name__ == "__main__":
-    clean_and_merge_for_kodi()
+    clean_and_merge_pipe_format()
