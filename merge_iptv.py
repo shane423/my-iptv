@@ -46,6 +46,9 @@ def clean_and_smart_select():
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
+                # 備份原始名稱，用來做特徵比對
+                orig_raw_name = raw_name
+                
                 # 清洗名稱，回復成純淨主名稱
                 clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
                 clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
@@ -69,28 +72,29 @@ def clean_and_smart_select():
                 channel_groups[unique_key].append({
                     "info": new_info,
                     "url": line,
-                    "raw_name": raw_name
+                    "raw_name": orig_raw_name
                 })
                 
             current_info = None
 
-    # 第二階段：強制定位篩選引擎
+    # 第二階段：強制定位與特徵篩選引擎
     output = ["#EXTM3U"]
-    print("第二階段：強制鎖定高成功率線路...")
+    print("第二階段：精準鎖定藍光/第三條高品質線路...")
     
     for unique_key, streams in channel_groups.items():
         best_stream = None
         
-        # 【深度優化防線】：將 key 轉為小寫，確保完全鎖定 TVBS 主頻道與 TVBS新聞台家族
+        # 【全線升級】：只要名字包含 TVBS（不分大小寫、不分主台或新聞台）
         upper_key = unique_key.upper()
         if "TVBS" in upper_key:
-            # 優先尋找名稱中包含 "3"、"-3" 的項目
+            # 優先防線：尋找原始名稱中含有「藍光」、「HD」、「1080」的高品質第三個頻道特徵
             for stream in streams:
-                if "3" in stream["raw_name"] or "-3" in stream["raw_name"]:
+                r_name = stream["raw_name"]
+                if any(kw in r_name for kw in ["藍光", "HD", "hd", "1080", "3", "-3"]):
                     best_stream = stream
                     break
             
-            # 如果名字被作者改掉或找不到帶 3 的，就直接強行抓取第 3 個元素（索引值 2）
+            # 次要防線：如果作者沒標註藍光，直接強行抓取陣列裡的「第 3 條線路」（索引值 2）
             if not best_stream and len(streams) >= 3:
                 best_stream = streams[2]
                 
@@ -105,14 +109,14 @@ def clean_and_smart_select():
                     url = stream["url"]
                     r_name = stream["raw_name"]
                     
+                    if any(kw in r_name for kw in ["藍光", "HD", "hd", "1080"]):
+                        score += 60
                     if "3" in r_name or "-3" in r_name:
-                        score += 50
+                        score += 40
                     if " (2)" in r_name or "-2" in r_name or " (1)" in r_name:
                         score -= 20
                     if any(x in url for x in ["/163189/", "cdn", "live", "stream"]):
-                        score += 40
-                    if any(x in r_name for x in ["藍光", "1080", "4K", "HD"]):
-                        score += 10
+                        score += 30
                         
                     if score > highest_score:
                         highest_score = score
@@ -128,7 +132,7 @@ def clean_and_smart_select():
     # 第三階段：寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【TVBS全線鎖定完成】共有 {len(channel_groups)} 個精選頻道成功輸出。")
+    print(f"【終極精準優化完成】TVBS藍光/第三條線路已強行扶正！共輸出 {len(channel_groups)} 個精選台。")
 
 if __name__ == "__main__":
     clean_and_smart_select()
