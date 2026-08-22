@@ -11,7 +11,7 @@ def clean_and_merge_by_groups():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         response = requests.get(ORIGINAL_URL, timeout=30)
-        response.encoding = 'utf-8'  # 強制使用 utf-8 解碼，防止特殊字元亂碼出錯
+        response.encoding = 'utf-8'  # 強制使用 utf-8 解碼
         if response.status_code != 200:
             print(f"錯誤：無法連線直播源，HTTP 狀態碼: {response.status_code}")
             return
@@ -30,7 +30,6 @@ def clean_and_merge_by_groups():
             continue
             
         if line.startswith("#EXTINF"):
-            # 使用更安全的正則表達式提取 group-title
             group_match = re.search(r'group-title="([^"]+)"', line)
             if group_match:
                 group_name = group_match.group(1).strip()
@@ -42,12 +41,11 @@ def clean_and_merge_by_groups():
                 current_info = None
                 
         elif line.startswith("http") and current_info:
-            # 從 #EXTINF 結尾精確提取頻道原始名稱
             name_match = re.search(r',([^,]+)$', current_info)
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                # 【安全清洗邏輯】防止取代完變空字串
+                # 【安全清洗邏輯】
                 clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
                 clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
                 clean_name = re.sub(r'(副本|副本\d+|Copy|Copy\d+|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
@@ -56,31 +54,37 @@ def clean_and_merge_by_groups():
                 if not clean_name:
                     clean_name = raw_name
                 
-                # 重新組合資訊行
-                new_info = re.sub(r',([^,]+)$', f',{clean_name}', current_info)
-                
-                # 安全提取群組名，建立唯一 Key
-                group_match_sub = re.search(r'group-title="([^"]+)"', new_info)
+                # 安全提取群組名
+                group_match_sub = re.search(r'group-title="([^"]+)"', current_info)
                 g_name = group_match_sub.group(1).strip() if group_match_sub else "其他"
                 unique_key = f"{g_name}___{clean_name}"
                 
                 if unique_key not in channels:
                     channels[unique_key] = []
-                channels[unique_key].append((new_info, line))
+                # 暫存原始 `#EXTINF` 資訊和網址
+                channels[unique_key].append((current_info, line, clean_name))
                 
             current_info = None
 
-    # 第三階段：重新格式化輸出符合 Kodi 規格的多線路 M3U 清單
+    # 第三階段：重新格式化輸出，並強制注入 Kodi 線路標籤
     output = ["#EXTM3U"]
     for unique_key, streams in channels.items():
-        for info, url in streams:
-            output.append(info)
+        # 針對同一個頻道底下的所有不同網址，依序邊玩線路編號 (Stream 1, 2, 3...)
+        for index, (orig_info, url, clean_name) in enumerate(streams, start=1):
+            # 移除舊有結尾名稱
+            info_base = re.sub(r',([^,]+)$', '', orig_info)
+            
+            # 【終極核心修復】：注入 kodi-name 標籤與不重複的單獨名稱
+            # 這樣 Kodi 就會把具有相同 kodi-name 的項目強制折疊成同一個頻道的「多線路切換選單」！
+            new_info = f'{info_base} kodi-name="{clean_name}",{clean_name} 線路 {index}'
+            
+            output.append(new_info)
             output.append(url)
 
     # 寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【大成功】過濾完成！已完美保留指定群組，共有 {len(channels)} 個獨立頻道！")
+    print(f"【大成功】過濾並導入 Kodi 標籤完成！共有 {len(channels)} 個獨立頻道成功折疊線路！")
 
 if __name__ == "__main__":
     clean_and_merge_by_groups()
