@@ -97,12 +97,16 @@ def clean_and_merge_kodi_stream_switch():
         # 1. 寫入唯一的電視台名稱（保證主畫面列表不重複）
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
         
-        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景
+        # 2. 【關鍵修正】：強制 Kodi 啟用 adaptive 插件來讀取多線路
+        output.append('#KODIPROP:inputstream=inputstream.adaptive')
+        output.append('#KODIPROP:inputstream.adaptive.manifest_type=hls')
+        
+        # 3. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (從 1 開始編號)
         if len(urls) > 1:
             for idx, alt_url in enumerate(urls[1:], start=1):
                 output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
         
-        # 3. 【致命漏洞已修復】：精準取出第一條主線路的網址字串 (urls[0])
+        # 4. 寫入第一條主線路的網址
         output.append(urls[0])
 
     # 寫入最終成品檔案
@@ -111,7 +115,7 @@ def clean_and_merge_kodi_stream_switch():
         f.write("\n".join(output))
         
     print(f"\n【Kodi 終極格式優化完成！】")
-    print(f"主列表只會顯示 {unique_channel_count} 個獨立頻道，多餘線路已被成功隱藏。")
+    print(f"已加入解碼器宣告。主列表獨立頻道共：{unique_channel_count} 個。")
 
 if __name__ == "__main__":
     clean_and_merge_kodi_stream_switch()
