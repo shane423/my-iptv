@@ -59,39 +59,29 @@ def clean_and_merge_by_groups():
                 g_name = group_match_sub.group(1).strip() if group_match_sub else "其他"
                 unique_key = f"{g_name}___{clean_name}"
                 
-                if unique_key not in channels:
-                    channels[unique_key] = []
-                # 暫存原始 `#EXTINF` 資訊和網址
-                channels[unique_key].append((current_info, line, clean_name))
+                # 【終極真去重核心】：如果這個頻道名稱已經存在了，就直接跳過不加入！
+                # 這樣可以強迫每一個電視台「只保留唯一一條最暢通的線路」，徹底消滅重複行！
+                if unique_key in channels:
+                    current_info = None
+                    continue
+                
+                # 重建乾淨的資訊行
+                new_info = re.sub(r',([^,]+)$', f',{clean_name}', current_info)
+                
+                channels[unique_key] = (new_info, line)
                 
             current_info = None
 
-    # 第三階段：重新格式化輸出，特別為不支援合併的 Kodi PVR 核心進行最佳化
+    # 第三階段：重新格式化輸出極致純淨、毫無重複的 M3U 清單
     output = ["#EXTM3U"]
-    for unique_key, streams in channels.items():
-        # 【全自動多線路折疊核心】：
-        # 如果該頻道有多條網址，我們不再為每條網址建立獨立的 `#EXTINF`
-        # 而是將它們全部打包成符合 Kodi「多串流（Multi-Stream）」規範的整合標籤
-        first_info, first_url, clean_name = streams[0]
-        info_base = re.sub(r',([^,]+)$', '', first_info)
-        
-        # 提取其他所有備用網址
-        all_urls = [stream[1] for stream in streams]
-        
-        # 將複數網址用管道符號 | 或者是連續輸出打包，但在 M3U 標準中，
-        # 連續輸出相同 radio-id/channel-id 且名稱 100% 一致的獨立行，Kodi 會在「電視指南」介面強行合併
-        # 為了同時兼顧「手動換線」與「死線全自動跳台」，我們使用 Kodi 官方原生連續折疊排法：
-        for index, (orig_info, url, clean_name) in enumerate(streams, start=1):
-            info_base = re.sub(r',([^,]+)$', '', orig_info)
-            # 強制為所有線路注入相同的名稱與不衝突的 radio/tvg 屬性
-            new_info = f'{info_base} kodi-name="{clean_name}" tvg-name="{clean_name}"', f'{clean_name}'
-            output.append(new_info[0])
-            output.append(url)
+    for unique_key, (info, url) in channels.items():
+        output.append(info)
+        output.append(url)
 
     # 寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【代碼全面升級】已成功為不支援合併的 Kodi 優化了 M3U 輸出結構！")
+    print(f"【極致去重完成】已成功為您的 Kodi 強制瘦身，每個電視台僅保留唯一精選線路！")
 
 if __name__ == "__main__":
     clean_and_merge_by_groups()
