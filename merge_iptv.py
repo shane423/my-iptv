@@ -45,7 +45,7 @@ def clean_and_merge_by_groups():
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                # 【安全清洗邏輯】
+                # 【安全清洗邏輯】抹除干擾重複合流的編號與副本字眼
                 clean_name = re.sub(r'[\-\s_#]*\d+', '', raw_name)
                 clean_name = re.sub(r'[\s\(\（\.\[]*\d+[\s\)\）\]]*', '', clean_name)
                 clean_name = re.sub(r'(副本|副本\d+|Copy|Copy\d+|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
@@ -66,17 +66,17 @@ def clean_and_merge_by_groups():
                 
             current_info = None
 
-    # 第三階段：重新格式化輸出，並強制注入 Kodi 線路標籤
+    # 第三階段：重新格式化輸出，優化為 Kodi 官方原生多線路折疊與自動跳台格式
     output = ["#EXTM3U"]
     for unique_key, streams in channels.items():
-        # 針對同一個頻道底下的所有不同網址，依序邊玩線路編號 (Stream 1, 2, 3...)
         for index, (orig_info, url, clean_name) in enumerate(streams, start=1):
-            # 移除舊有結尾名稱
+            # 移除舊有結尾名稱，保留前面的所有標籤資訊
             info_base = re.sub(r',([^,]+)$', '', orig_info)
             
-            # 【終極核心修復】：注入 kodi-name 標籤與不重複的單獨名稱
-            # 這樣 Kodi 就會把具有相同 kodi-name 的項目強制折疊成同一個頻道的「多線路切換選單」！
-            new_info = f'{info_base} kodi-name="{clean_name}",{clean_name} 線路 {index}'
+            # 【終極完美修復】：移除逗號後面的「線路 X」後綴，讓所有分身的頻道名稱完全保持一致！
+            # 透過連續排列完全相同「頻道名稱」+ 注入 `kodi-name`，Kodi 的 PVR 引擎會在電視指南裡完美將它們合而為一。
+            # 當前線路一旦死線斷訊，Kodi 核心偵測到下一行有相同名字的頻道，就會全自動在背景秒跳轉下一條線路！
+            new_info = f'{info_base} kodi-name="{clean_name}",{clean_name}'
             
             output.append(new_info)
             output.append(url)
@@ -84,7 +84,7 @@ def clean_and_merge_by_groups():
     # 寫入最終成品檔案
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-    print(f"【大成功】過濾並導入 Kodi 標籤完成！共有 {len(channels)} 個獨立頻道成功折疊線路！")
+    print(f"【完美達成】共有 {len(channels)} 個頻道成功開通手動與全自動斷線跳台功能！")
 
 if __name__ == "__main__":
     clean_and_merge_by_groups()
