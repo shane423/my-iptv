@@ -80,7 +80,7 @@ def clean_and_merge_kodi_stream_switch():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 第三階段：輸出為 Kodi 影像串流多音軌/多線路切換格式
+    # 第三階段：輸出為 Kodi 影像串流多路徑切換格式
     output = ["#EXTM3U"]
     unique_channel_count = 0
     
@@ -97,12 +97,12 @@ def clean_and_merge_kodi_stream_switch():
         # 1. 寫入唯一的電視台名稱（保證主畫面列表不重複）
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
         
-        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景 (從 1 開始編號)
+        # 2. 如果有備用線路，利用 KODIPROP 將線路 2、線路 3 綁定在背景
         if len(urls) > 1:
             for idx, alt_url in enumerate(urls[1:], start=1):
                 output.append(f'#KODIPROP:inputstream.adaptive.stream_url_{idx}={alt_url}')
         
-        # 3. 【已修正漏洞】：這裡必須寫入第一條主線路的「網址字串」，而不是整個 urls 陣列
+        # 3. 【致命漏洞已修復】：精準取出第一條主線路的網址字串 (urls[0])
         output.append(urls[0])
 
     # 寫入最終成品檔案
@@ -110,8 +110,8 @@ def clean_and_merge_kodi_stream_switch():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【Kodi 影像串流切換優化完成！】")
-    print(f"成功將多條線路合併至背景，主列表只會顯示 {unique_channel_count} 個獨立頻道。")
+    print(f"\n【Kodi 終極格式優化完成！】")
+    print(f"主列表只會顯示 {unique_channel_count} 個獨立頻道，多餘線路已被成功隱藏。")
 
 if __name__ == "__main__":
     clean_and_merge_kodi_stream_switch()
