@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
-TARGET_GROUPS = {"港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"}
+TARGET_GROUPS = {"港澳台", "電影", "電視劇", "綜藝頻道", "NewTV", "兒童頻道"}
 
 EXCLUDE_CHANNELS = {
     "鳳凰中文", "凤凰中文", "鳳凰資訊", "凤凰资讯", "鳳凰香港", "凤凰香港", "鳳凰電影", "凤凰电影",
@@ -30,7 +30,8 @@ def check_url_alive(url):
 
     start_time = time.time()
     try:
-        res = requests.get(url, headers=HEADERS, timeout=1.5, verify=False, allow_redirects=True)
+        # 縮短 timeout 避免單一卡死線路拉慢整體進度
+        res = requests.get(url, headers=HEADERS, timeout=1.0, verify=False, allow_redirects=True)
         if res.status_code >= 400:
             return url, False, 999
 
@@ -44,7 +45,7 @@ def check_url_alive(url):
 
             first_target = ts_urls[0]
             if ".m3u8" in first_target.lower():
-                sub_res = requests.get(first_target, headers=HEADERS, timeout=1.0, verify=False, allow_redirects=True)
+                sub_res = requests.get(first_target, headers=HEADERS, timeout=0.8, verify=False, allow_redirects=True)
                 if sub_res.status_code >= 400:
                     return url, False, 999
                 ts_urls = [urljoin(sub_res.url, line.strip()) for line in sub_res.text.splitlines() if line.strip() and not line.strip().startswith("#")]
@@ -52,7 +53,7 @@ def check_url_alive(url):
             if not ts_urls:
                 return url, False, 999
 
-            ts_res = requests.get(ts_urls[0], headers=HEADERS, timeout=1.0, verify=False, stream=True, allow_redirects=True)
+            ts_res = requests.get(ts_urls[0], headers=HEADERS, timeout=0.8, verify=False, stream=True, allow_redirects=True)
             if ts_res.status_code < 400:
                 chunk = next(ts_res.iter_content(chunk_size=1024), None)
                 if chunk and len(chunk) >= 512:
@@ -137,7 +138,6 @@ def clean_filter_smart_merge():
     all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
     print(f"開始掃描 {len(all_urls)} 條線路...", flush=True)
 
-    # ⚡ 關鍵修復：預先將所有 4gtv 填寫為通過（is_alive: True），避免超時 break 導致未測到的 4gtv 被預設為 False！
     alive_urls_map = {}
     for u in all_urls:
         if "4gtv" in u.lower():
@@ -145,8 +145,9 @@ def clean_filter_smart_merge():
 
     start_time = time.time()
 
-    executor = ThreadPoolExecutor(max_workers=15)
-    futures = [executor.submit(check_url_alive, url) for url in all_urls if "4gtv" not in url.lower()]
+    # ⚡ 修正點 1：提升 worker 數量至 30（Network I/O 併發瓶頸較小）
+    executor = ThreadPoolExecutor(max_workers=30)
+    futures = {executor.submit(check_url_alive, url): url for url in all_urls if "4gtv" not in url.lower()}
     
     for future in as_completed(futures):
         if time.time() - start_time > 30:
@@ -157,6 +158,12 @@ def clean_filter_smart_merge():
             alive_urls_map[u] = {"is_alive": is_alive, "delay": delay}
         except Exception:
             pass
+
+    # ⚡ 修正點 2：對於因 30 秒截斷未測完的非 4gtv URL，預設給予保留 (is_alive: True, delay: 5.0)
+    # 避免正常線路因為檢測超時而被誤剔除
+    for u in all_urls:
+        if u not in alive_urls_map:
+            alive_urls_map[u] = {"is_alive": True, "delay": 5.0}
 
     output = [extm3u_header]
     def url_sort_key(u):
