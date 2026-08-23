@@ -204,9 +204,9 @@ def clean_filter_smart_merge():
                 best_url = url
                 break
                 
-        # 💡【終極修復點】若全軍覆沒，強制抓取 urls[0]（第一條網址字串），絕不允許塞入整個 List 陣列
-        if not best_url and urls:
-            best_url = urls[0]
+        # 💡【關鍵修正】移除舊有的 urls 盲目保底邏輯！
+        # 如果 best_url 依然是 None（代表該台全軍覆沒），就不會執行下方的 output.append
+        # 這樣該頻道就會直接從「_精簡」群組中徹底隱形、不再顯示！
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
@@ -219,7 +219,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化與類型漏洞完全修復！】")
+    print(f"\n【全球雙軌精簡優化完成！已剔除全軍覆沒頻道。】")
     print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
