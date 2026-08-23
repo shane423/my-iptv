@@ -10,13 +10,13 @@ from urllib.parse import urljoin
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
-TARGET_GROUPS = {"港澳台", "電影", "電視劇", "綜藝頻道", "NewTV", "兒童頻道"}
+TARGET_GROUPS = {"港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"}
 
 EXCLUDE_CHANNELS = {
-    "鳳凰中文", "凤凰中文", "鳳凰資訊", "凤凰资讯", "鳳凰香港", "凤凰香港", "鳳凰電影", "凤凰电影",
+    "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
-    "TVB星河", "TVB翡翠台", "TVB翡翠", "無線新聞", "無綫新聞", "无线新闻",
-    "星空衛視", "星空卫视", "CHANNEL[V]", "CHANNEL V", "CHANNELV", "VIUTV"
+    "TVB星河", "TVB翡翠台", "TVB翡翠", "无线新闻",
+    "星空卫视", "CHANNEL[V]", "CHANNEL V", "CHANNELV", "VIUTV"
 }
 
 HEADERS = {
@@ -31,6 +31,7 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
+            # 限制每個請求最多 1.5 秒
             timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
@@ -125,7 +126,7 @@ def clean_filter_smart_merge():
                 continue
 
             if g_name == "港澳台" or is_4gtv:
-                g_name = "台灣"
+                g_name = "台湾"
 
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
@@ -179,30 +180,30 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # --- 僅輸出精選版 (每個群組獨立由 1 開始連續編號) ---
-    group_counters = {}
-
+    # 1. 輸出完整版（所有線路）
     for key, ch in channels.items():
-        grp = ch["group"]
-        if grp not in group_counters:
-            group_counters[grp] = 1
-
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        # 抓取該頻道回應最快且存活的最佳線路
+        for idx, url in enumerate(sorted_urls, 1):
+            is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
+            label = "" if is_alive else "[卡頓/失效]"
+            name = f"{ch['name']}{label} ({idx})"
+            output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
+            output.append(url)
+
+    # 2. 輸出精選版（帶有連續頻道號碼 tvg-chno，從 1 開始）
+    chno = 1
+    for key, ch in channels.items():
+        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
-        
         if best:
-            chno_str = f' tvg-chno="{group_counters[grp]}"'
-            output.append(f'#EXTINF:-1{chno_str} tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{grp}",{ch["name"]}')
+            output.append(f'#EXTINF:-1 tvg-chno="{chno}" tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
             output.append(best)
-            
-            # 成功寫入該頻道後，計數器遞增 1
-            group_counters[grp] += 1
+            chno += 1
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
 
-    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒。", flush=True)
+    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒，精選版共包含 {chno - 1} 個頻道號碼。", flush=True)
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
