@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
-ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
+ORIGINAL_URL = "https://githubusercontent.com"
 
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
@@ -27,18 +27,18 @@ def check_url_alive(url):
     """
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    # 嘗試 1：HEAD 快速偵測
+    # 嘗試 1：HEAD 快速偵測（已修正語法漏洞）
     try:
         response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
-        if response.status_code in:
+        if response.status_code == 200:
             return True
     except:
         pass
     
-    # 嘗試 2：GET 分段流偵測（防止部分伺服器封鎖 HEAD 請求）
+    # 嘗試 2：GET 分段流偵測（已修正語法漏洞）
     try:
         response = requests.get(url, headers=headers, timeout=3, stream=True, verify=False)
-        if response.status_code in:
+        if response.status_code == 200:
             return True
     except:
         pass
@@ -154,7 +154,7 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 限制並發線程數為 10，避免 GitHub 雲端環境因瞬時連線過高被網路安全策略封鎖
+    # 限制並發線程數為 10，避免 GitHub 雲端環境網路阻塞
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
@@ -198,7 +198,7 @@ def clean_filter_smart_merge():
                 break
                 
         if not best_url and urls:
-            best_url = urls[0]
+            best_url = urls
             
         if best_url:
             unique_channel_count += 1
