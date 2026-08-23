@@ -28,6 +28,16 @@ GROUP_NAME_MAP = {
     "NewTV": "NewTV"
 }
 
+# 精選群組的頂部排序前綴（確保 Kodi 排序時排在最前面）
+SELECT_GROUP_SORT = {
+    "台灣": "01.台灣_精選",
+    "電影": "02.電影_精選",
+    "電視劇": "03.電視劇_精選",
+    "卡通": "04.卡通_精選",
+    "NewTV": "05.NewTV_精選"
+}
+
+# 一般頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -124,6 +134,7 @@ def clean_filter_smart_merge():
             continue
 
         current_group = None
+        raw_g_name = None
         current_clean_name = None
         current_raw_info = {}
 
@@ -140,15 +151,15 @@ def clean_filter_smart_merge():
                 is_4gtv = "4gtv" in next_url.lower()
 
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
-                g_name = group_match.group(1).strip() if group_match else "其他"
+                raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
                 # 判斷是否在要擷取的群組目標內（4gtv 線路直接放行）
-                if not is_4gtv and g_name not in TARGET_GROUPS:
+                if not is_4gtv and raw_g_name not in TARGET_GROUPS:
                     current_group = None
                     continue
 
                 # 將群組轉為 Kodi 顯示的繁體名稱（4gtv 強制歸類為「台灣」）
-                g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(g_name, g_name)
+                g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(raw_g_name, raw_g_name)
 
                 name_match = re.search(r',([^,]+)$', line)
                 if name_match:
@@ -156,9 +167,14 @@ def clean_filter_smart_merge():
                     clean_name = re.sub(r'[\-\s_#]+\d+$', '', raw_name)
                     clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name).strip() or raw_name
 
-                    if any(b in clean_name.upper() or b in raw_name.upper() for b in EXCLUDE_CHANNELS):
-                        current_group = None
-                        continue
+                    # 只有來源為 zbds.top 且屬特定群組時不進行過濾，其餘來源一律執行過濾
+                    is_zbds = "live.zbds.top" in src_url
+                    skip_filter = is_zbds and (raw_g_name in {"电影频道", "儿童频道"})
+
+                    if not skip_filter:
+                        if any(b in clean_name.upper() or b in raw_name.upper() for b in EXCLUDE_CHANNELS):
+                            current_group = None
+                            continue
 
                     logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
                     tvg_id_match = re.search(r'tvg-id=["\']([^"\']+)["\']', line)
@@ -204,7 +220,16 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 輸出完整版
+    # 優先輸出「精選版」群組，並加上前綴數字，保證排在 Kodi 最頂端
+    for key, ch in channels.items():
+        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        if best:
+            group_display = SELECT_GROUP_SORT.get(ch["group"], f"00.{ch['group']}_精選")
+            output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
+            output.append(best)
+
+    # 輸出完整版群組
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
@@ -213,14 +238,6 @@ def clean_filter_smart_merge():
             name = f"{ch['name']}{label} ({idx})"
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
-
-    # 輸出精選版
-    for key, ch in channels.items():
-        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
-        if best:
-            output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
-            output.append(best)
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
