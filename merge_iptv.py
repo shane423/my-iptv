@@ -1,13 +1,13 @@
 import re
 import requests
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
+# 1. 指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
 # 2. 精準保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_kodi_failover():
+def clean_and_merge_to_video_tracks():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -80,7 +80,7 @@ def clean_and_merge_kodi_failover():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 第三階段：輸出為 Kodi 標準的單標頭多網址 Failover 堆疊格式
+    # 第三階段：使用 HLS 變流堆疊語法輸出，強迫解鎖 Kodi 影像串流選單
     output = ["#EXTM3U"]
     unique_channel_count = 0
     
@@ -94,20 +94,36 @@ def clean_and_merge_kodi_failover():
             
         unique_channel_count += 1
         
-        # 1. 核心精隨：這個電視台名稱「只會印出一次」#EXTINF 標頭
+        # 1. 告訴 Kodi 這個頻道要啟用 adaptive 核心，並且它是一個畫質/線路變流清單
         output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
+        output.append('#KODIPROP:inputstream=inputstream.adaptive')
+        output.append('#KODIPROP:inputstream.adaptive.manifest_type=hls')
         
-        # 2. 將所有的備用網址緊接著排在下方
-        for url in urls:
-            output.append(url)
+        # 2. 將所有網址用大寫的組合格式打包（Kodi 官方支援的多網址堆疊法）
+        # 格式：網址1|#EXT-X-STREAM-INF:BANDWIDTH=8000000,NAME=線路1|網址2|#EXT-X-STREAM-INF:BANDWIDTH=5000000,NAME=線路2
+        stack_parts = []
+        for idx, url in enumerate(urls, start=1):
+            # 虛擬給予不同的頻寬(BANDWIDTH)與線路名稱(NAME)，欺騙 Kodi 這是不同的視訊軌
+            bandwidth = 10000000 - (idx * 1000000)
+            if bandwidth < 1000000:
+                bandwidth = 1000000
+            
+            if idx == 1:
+                stack_parts.append(f"{url}|#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},NAME=Line_{idx}")
+            else:
+                stack_parts.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},NAME=Line_{idx}|{url}")
+        
+        # 用管道符號將變流宣告與網址黏成一整行
+        merged_stream_line = "|".join(stack_parts)
+        output.append(merged_stream_line)
 
     # 寫入最終成品檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【Kodi 原生 Failover 優化完成！】")
-    print(f"成功合併重複線路，頻道主列表獨立頻道共：{unique_channel_count} 個。")
+    print(f"\n【Kodi 影像串流多軌格式 - 優化完成！】")
+    print(f"成功將重複線路封裝進背景！頻道主列表共：{unique_channel_count} 個獨立頻道。")
 
 if __name__ == "__main__":
-    clean_and_merge_kodi_failover()
+    clean_and_merge_to_video_tracks()
