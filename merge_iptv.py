@@ -10,13 +10,24 @@ from urllib.parse import urljoin
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
-TARGET_GROUPS = {"港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"}
+
+# 原始 M3U 中要抓取的簡體群組
+TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道"}
+
+# 映射至 Kodi 顯示的繁體群組名稱
+GROUP_NAME_MAP = {
+    "港澳台": "台灣",
+    "电影": "電影",
+    "电视剧": "電視劇",
+    "儿童频道": "卡通",
+    "NewTV": "NewTV"
+}
 
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
     "TVB星河", "TVB翡翠台", "TVB翡翠", "无线新闻",
-    "星空卫视", "CHANNEL[V]", "CHANNEL V", "CHANNELV", "VIUTV"
+    "星空卫视", "CHANNEL[V]", "VIUTV"
 }
 
 HEADERS = {
@@ -74,11 +85,13 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
+    # 限制最大同時發送 40 個請求，既快又不會被對手伺服器擋
     sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
+        # 設定整體任務的硬性絕殺時間（例如 18 秒）
         try:
             results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
@@ -121,12 +134,13 @@ def clean_filter_smart_merge():
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
             
+            # 判斷是否在要擷取的群組目標內（4gtv 線路直接放行）
             if not is_4gtv and g_name not in TARGET_GROUPS:
                 current_group = None
                 continue
 
-            if g_name == "港澳台" or is_4gtv:
-                g_name = "台湾"
+            # 將群組轉為 Kodi 顯示的繁體名稱，若為 4gtv 線路則強制歸類為「台灣」
+            g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(g_name, g_name)
 
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
@@ -168,9 +182,11 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
     start_time = time.time()
 
+    # 執行 AsyncIO 掃描
     scanned_results = asyncio.run(scan_all_urls(scan_targets))
     alive_urls_map.update(scanned_results)
 
+    # 保障機制：超時未測完的非 4gtv URL 預設保留為有效 (True)，防止頻道被誤刪
     for u in all_urls:
         if u not in alive_urls_map:
             alive_urls_map[u] = {"is_alive": True, "delay": 5.0}
@@ -180,7 +196,7 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 1. 輸出完整版（所有線路）
+    # 輸出完整版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
@@ -190,20 +206,18 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
-    # 2. 輸出精選版（帶有連續頻道號碼 tvg-chno，從 1 開始）
-    chno = 1
+    # 輸出精選版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
         if best:
-            output.append(f'#EXTINF:-1 tvg-chno="{chno}" tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
+            output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
             output.append(best)
-            chno += 1
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
 
-    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒，精選版共包含 {chno - 1} 個頻道號碼。", flush=True)
+    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒。", flush=True)
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
