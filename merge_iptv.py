@@ -7,18 +7,31 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
+
+# 2. 保留的 6 大分組群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"}
+
+# 3. 專屬頻道黑名單（已補全繁簡體，防止漏過濾）
 EXCLUDE_CHANNELS = {
-    "鳳凰中文", "鳳凰資訊", "鳳凰香港", "鳳凰電影", 
-    "星空衛視", "CHANNEL[V]", "CHANNEL V", "CHANNELV",
+    # 鳳凰系列
+    "鳳凰中文", "凤凰中文",
+    "鳳凰資訊", "凤凰资讯",
+    "鳳凰香港", "凤凰香港",
+    "鳳凰電影", "凤凰电影",
+    # TVB / 無線系列
     "TVBPEARL", "TVB PEARL", "TVB明珠台",
     "TVBPLUS", "TVB PLUS", "TVBJ2",
     "TVB星河", "TVB翡翠台", "TVB翡翠",
-    "無線新聞", "無綫新聞", "VIUTV"
+    "無線新聞", "無綫新聞", "无线新闻",
+    # 其他頻道
+    "星空衛視", "星空卫视",
+    "CHANNEL[V]", "CHANNEL V", "CHANNELV",
+    "VIUTV"
 }
 
-# 全域 Session 物件以重用 TCP 連線
+# 全域 Session 物件以重用 TCP 連線，大幅提升網路效能
 session = requests.Session()
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -28,11 +41,10 @@ session.headers.update({
 
 def check_url_alive(url):
     """
-    流媒體快速驗證：使用短 Timeout (1.8s) 並讀取首個 Chunk
+    流媒體快速驗證：設定 1.8s 超時並讀取首個 Chunk，快速淘汰死鏈
     """
     start_time = time.time()
     try:
-        # 將超時降至 1.8 秒，快速淘汰死鏈
         res = session.get(url, timeout=1.8, verify=False, stream=True)
         if res.status_code < 400:
             chunk = next(res.iter_content(chunk_size=1024), None)
@@ -90,16 +102,20 @@ def clean_filter_smart_merge():
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                clean_name = re.sub(r'[\-\s_#]+\d+$', '', raw_name)
+                clean_name = raw_name
+                clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
                 clean_name = re.sub(r'[\s\(\停\（\[]+\d+[\s\)\營\]]+', '', clean_name)
                 clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name).strip()
                 
                 if not clean_name:
                     clean_name = raw_name
                 
-                clean_name_upper = clean_name.upper()
-                raw_name_upper = raw_name.upper()
-                if any(black in clean_name_upper or black in raw_name_upper for black in EXCLUDE_CHANNELS):
+                # 關鍵修正：同時比對清洗後名稱與原始名稱，並忽略大小寫
+                clean_upper = clean_name.upper()
+                raw_upper = raw_name.upper()
+                is_excluded = any(black in clean_upper or black in raw_upper for black in EXCLUDE_CHANNELS)
+                
+                if is_excluded:
                     current_group = None
                     current_clean_name = None
                     continue
@@ -132,13 +148,13 @@ def clean_filter_smart_merge():
                 if line not in channels[unique_key]["urls"]:
                     channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時數據探測...")
+    print("\n⚡ 正在進行線上即時數據探測 (採用 20 線程加速)...")
     
     all_urls_to_test = [url for ch_data in channels.values() for url in ch_data["urls"]]
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 提升至 20 線程平行探測
+    # 採用 20 線程進行平行探測
     with ThreadPoolExecutor(max_workers=20) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, (is_alive, delay) in zip(unique_urls_to_test, results):
@@ -147,13 +163,14 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
 
+    # 排序規則 (4gtv 優先 -> 存活優先 -> 延遲低優先)
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         is_4gtv = 1 if "4gtv" in u.lower() else 0
         is_alive = 1 if info["is_alive"] else 0
         return (is_4gtv, is_alive, -info["delay"])
 
-    # 軌道 1：原始完整群組
+    # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -171,7 +188,7 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # 軌道 2：精選複製群組
+    # --- 軌道 2：精選複製群組 (只留真活網最佳線路) ---
     print("正在生成對應的『_精選』高可用複製群組...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -190,11 +207,12 @@ def clean_filter_smart_merge():
             output.append(best_url)
             total_lines_written += 1
 
+    # 寫入最終檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化完成！】")
+    print(f"\n【全球雙軌精簡優化完成！已完全過濾黑名單頻道。】")
     print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
