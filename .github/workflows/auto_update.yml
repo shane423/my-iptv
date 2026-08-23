@@ -2,38 +2,37 @@ name: 自動更新 IPTV 播放清單
 
 on:
   schedule:
-    # 💡 台北時間 (GMT+8) 凌晨 05:00，對應的國際標準時間 (UTC) 為前一天晚上的 21:00
+    # 台北時間 (GMT+8) 凌晨 05:00，對應的國際標準時間 (UTC) 為前一天晚上的 21:00
     - cron: '0 21 * * *'
-  workflow_dispatch:      # 依舊保留手動點擊按鈕強制執行更新的功能
+  workflow_dispatch:      # 保留手動點擊按鈕強制執行更新的功能
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 升級至 v4，完全消滅 Node.js 20 淘汰警告
+      # 1. 簽出專案原始碼
       - name: 簽出專案原始碼 (Checkout Repository)
         uses: actions/checkout@v4
 
-      # 2. 升級至 v5，完美支援最新版雲端 Python 環境
+      # 2. 設定 Python 環境（已移除會導致崩潰的 cache 設定）
       - name: 設定 Python 環境 (Set up Python)
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip' # 開啟快取，加速後續的自動化流程
 
-      # 3. 確保活網偵測必備的網路請求套件安裝完全
+      # 3. 安裝 Python 活網偵測必要套件
       - name: 安裝 Python 活網偵測必要套件 (Install Dependencies)
         run: |
           python -m pip install --upgrade pip
           pip install requests urllib3
 
-      # 4. 執行您更新完成的「100%安全不崩潰活網偵測」Python 腳本
+      # 4. 執行智慧清洗與雙軌精簡偵測腳本
       # 備註：如果您的 Python 腳本不叫 main.py，請將下方 main.py 改成您實際的檔名
       - name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
         run: python main.py
 
-      # 5. 將自動生成好的最新備用線路與精簡群組推回您的 GitHub 倉庫
+      # 5. 提交並推送最新 M3U 直播源
       - name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
         run: |
           git config --local user.email "actions@github.com"
