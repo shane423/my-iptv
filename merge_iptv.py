@@ -48,55 +48,76 @@ HEADERS = {
 }
 
 async def check_single_url(session, url, sem):
-    if "4gtv" in url.lower():
+    # 【豁免機制】4gtv 與 live.zbds.top 來源免受嚴格測速限制，直接判定為存活
+    if "4gtv" in url.lower() or "zbds.top" in url.lower():
         return url, True, 0.0
 
     async with sem:
         start_time = time.time()
         try:
-            timeout = aiohttp.ClientTimeout(total=2.5, connect=1.2)
+            # 第一階段：主請求 (套用第二份程式碼的嚴格 1.5s/0.8s Timeout)
+            timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
                     return url, False, 999
 
+                content_type = res.headers.get('Content-Type', '').lower()
                 text = await res.text(errors='ignore')
-                if "#EXTM3U" in text or "mpegurl" in res.headers.get('Content-Type', '').lower() or ".m3u8" in url.lower():
+
+                # 判斷是否為 M3U8 播放清單
+                if "#EXTM3U" in text or "mpegurl" in content_type:
                     ts_urls = [urljoin(str(res.url), line.strip()) for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
                     if not ts_urls:
-                        return url, True, time.time() - start_time
+                        return url, False, 999
 
                     first_target = ts_urls[0]
+                    # 第二階段：若內嵌二級 M3U8，進行下探解析
                     if ".m3u8" in first_target.lower():
-                        sub_timeout = aiohttp.ClientTimeout(total=1.5)
+                        sub_timeout = aiohttp.ClientTimeout(total=1.0)
                         async with session.get(first_target, headers=HEADERS, ssl=False, timeout=sub_timeout, allow_redirects=True) as sub_res:
-                            if sub_res.status < 400:
+                            if sub_res.status >= 400:
+                                return url, False, 999
+                            sub_text = await sub_res.text(errors='ignore')
+                            ts_urls = [urljoin(str(sub_res.url), line.strip()) for line in sub_text.splitlines() if line.strip() and not line.strip().startswith("#")]
+
+                    if not ts_urls:
+                        return url, False, 999
+
+                    # 第三階段：對最終 TS 切片進行數據流抓取測試
+                    ts_timeout = aiohttp.ClientTimeout(total=1.0)
+                    async with session.get(ts_urls[0], headers=HEADERS, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
+                        if ts_res.status < 400:
+                            chunk = await ts_res.content.read(1024)
+                            # 嚴格驗證：影音數據區塊必須 >= 512 bytes 才算真存活
+                            if chunk and len(chunk) >= 512:
                                 return url, True, time.time() - start_time
-                    else:
-                        return url, True, time.time() - start_time
                 else:
-                    chunk = await res.content.read(512)
-                    if chunk:
+                    # 非 M3U8 的直接串流，同樣驗證是否有真實數據流
+                    chunk = await res.content.read(1024)
+                    if chunk and len(chunk) >= 512:
                         return url, True, time.time() - start_time
 
         except Exception:
             pass
 
-        return url, True, 2.0
+        return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    sem = asyncio.Semaphore(50)
+    # 限制最大 Concurrent 為 40 (套用第二份設定)
+    sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
+        # 設定整體任務絕殺時間為 18 秒
         try:
-            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=25.0)
+            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
                 if isinstance(res, tuple):
                     u, is_alive, delay = res
                     alive_map[u] = {"is_alive": is_alive, "delay": delay}
         except asyncio.TimeoutError:
-            print("⚡ 非同步掃描達上限時間，將裁切剩餘請求並保留預設狀態！", flush=True)
+            print("⚡ 已達非同步掃描上限時間，強制裁切剩餘請求！", flush=True)
 
     return alive_map
 
@@ -135,7 +156,7 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                # zbds 嚴格過濾：只要兒童頻道與電影頻道，其餘放棄
+                # zbds 嚴格過濾：只要兒童頻道與電影頻道
                 if is_zbds:
                     if raw_g_name not in ZBDS_TARGET_GROUPS:
                         current_group = None
@@ -185,26 +206,31 @@ def clean_filter_smart_merge():
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
     alive_urls_map = {}
+    # 預先處理豁免項目（4gtv 及 zbds.top 來源）
     for u in all_urls:
-        if "4gtv" in u.lower():
+        if "4gtv" in u.lower() or "zbds.top" in u.lower():
             alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
 
-    scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
+    scan_targets = [u for u in all_urls if u not in alive_urls_map]
     start_time = time.time()
 
+    # 執行 AsyncIO 嚴格掃描
     scanned_results = asyncio.run(scan_all_urls(scan_targets))
     alive_urls_map.update(scanned_results)
 
+    # 備援與保底機制：若有未測到的剩餘網址（如整體 18s 超時），預設設為失效 (False, 999) 貫徹嚴格篩選
     for u in all_urls:
         if u not in alive_urls_map:
-            alive_urls_map[u] = {"is_alive": True, "delay": 2.0}
+            alive_urls_map[u] = {"is_alive": False, "delay": 999}
 
     output = [extm3u_header]
+    
+    # URL 排序權重算法
     def url_sort_key(u):
-        info = alive_urls_map.get(u, {"is_alive": True, "delay": 2.0})
-        return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
+        info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
+        return (1 if info["is_alive"] else 0, 1 if ("4gtv" in u.lower() or "zbds.top" in u.lower()) else 0, -info["delay"])
 
-    # 排序核心邏輯：台灣 -> 電影 -> 電視劇 -> 卡通 -> NewTV -> 其他
+    # 頻道群組指定順序排序
     def channel_group_sort_key(item):
         ch = item[1]
         group = ch["group"]
@@ -214,22 +240,23 @@ def clean_filter_smart_merge():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 1. 寫入「精選版」頻道（包含 zbds 兒童與電影全項目）
+    # 1. 寫入「精選版」頻道（套用第二份程式碼的嚴格過濾：無存活線路者直接剔除）
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        best = sorted_urls[0] if sorted_urls else None
+        # 僅選取 is_alive 為 True 的第一條最佳線路
+        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
         if best:
             group_display = f"{ch['group']}_精選"
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
             output.append(best)
 
-    # 2. 寫入完整版頻道
+    # 2. 寫入完整版頻道（保留全部線路，並標記 [卡頓/失效]）
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
-            is_alive = alive_urls_map.get(url, {}).get("is_alive", True)
+            is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
             label = "" if is_alive else "[卡頓/失效]"
-            name = f"{ch['name']}{label} ({idx})" if len(sorted_urls) > 1 else ch['name']
+            name = f"{ch['name']}{label} ({idx})" if len(sorted_urls) > 1 else f"{ch['name']}{label}"
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
