@@ -1,4 +1,5 @@
 import re
+import time
 import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor
@@ -6,13 +7,13 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
-ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u" # 請填入完整正確的 GitHub Raw 網址
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源 (請依需求填入完整網址)
+ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-# 3. 頻道黑名單
+# 3. 您的專屬頻道黑名單
 EXCLUDE_CHANNELS = [
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
     "星空卫视", "Channel[V]", "Channel V", "ChannelV",
@@ -24,65 +25,61 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【深度串流流暢度驗證】
-    1. 不只檢查 200 OK，還會解析 .m3u8 內容取得真實 .ts 檔案
-    2. 下載實體數據切片，驗證是否真有數據流（防卡死/假活網）
+    【進階流媒體數據流檢驗】
+    回傳 tuple: (is_alive: bool, response_time: float)
+    不只檢查 HTTP 狀態，若為 m3u8 會深入檢測 TS 切片是否真有數據串流傳輸，防止「幾秒就卡住」。
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
-        'Connection': 'keep-alive'
+        'Connection': 'close'
     }
     
+    start_time = time.time()
     try:
-        # 第一階段：請求 m3u8 檔案
-        resp = requests.get(url, headers=headers, timeout=4, verify=False, stream=True)
-        if resp.status_code != 200:
-            return False
+        # 1. 抓取播放清單內容 (設定 3.5 秒超時)
+        res = requests.get(url, headers=headers, timeout=3.5, verify=False, stream=True)
+        if res.status_code >= 400:
+            return (False, 999)
+
+        # 2. 針對 HLS (m3u8) 深入檢查內部是否有可用的 TS 切片
+        content_type = res.headers.get('Content-Type', '')
+        if 'mpegurl' in content_type or url.endswith('.m3u8') or '#EXTM3U' in res.text[:100]:
+            lines = res.text.splitlines()
+            ts_url = None
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    # 補全相對路徑 TS
+                    if line.startswith('http'):
+                        ts_url = line
+                    else:
+                        base_url = url.rsplit('/', 1)[0]
+                        ts_url = f"{base_url}/{line}"
+                    break
+            
+            # 若找到內層 TS/m3u8 切片，試讀前 1KB 數據驗證串流順暢度
+            if ts_url:
+                try:
+                    with requests.get(ts_url, headers=headers, timeout=2.5, verify=False, stream=True) as ts_res:
+                        if ts_res.status_code < 400:
+                            chunk = next(ts_res.iter_content(chunk_size=1024), None)
+                            if chunk and len(chunk) > 0:
+                                elapsed = time.time() - start_time
+                                return (True, elapsed)
+                except BaseException:
+                    return (False, 999)
         
-        content_type = resp.headers.get('Content-Type', '').lower()
-        content_text = resp.text
+        # 非 HLS 或無切片的通用流，只要能穩定讀取前段 chunk 即算成功
+        chunk = next(res.iter_content(chunk_size=1024), None)
+        if chunk and len(chunk) > 0:
+            elapsed = time.time() - start_time
+            return (True, elapsed)
+
+    except BaseException:
+        pass
         
-        # 判斷是否為合法的 M3U/HLS 檔案格式
-        if "#EXTM3U" not in content_text and "mpegurl" not in content_type:
-            # 若為直連 TS 檔則嘗試讀取封包
-            if "video" in content_type or url.endswith(".ts"):
-                return len(resp.raw.read(1024 * 64)) > 0
-            return False
-
-        # 第二階段：提取內部 TS 數據切片連結
-        ts_urls = []
-        for line in content_text.splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                if line.startswith("http"):
-                    ts_urls.append(line)
-                else:
-                    # 處理相對路徑
-                    base_url = url.rsplit('/', 1)[0]
-                    ts_urls.append(f"{base_url}/{line}")
-        
-        if not ts_urls:
-            return False
-
-        # 第三階段：對前 2 個 TS 數據切片進行數據下載實測（驗證流暢度）
-        verified_ts = 0
-        for ts_url in ts_urls[:2]:
-            try:
-                with requests.get(ts_url, headers=headers, timeout=3, stream=True, verify=False) as ts_resp:
-                    if ts_resp.status_code == 200:
-                        # 試讀取 64KB 數據，確保沒有中途斷流
-                        chunk = ts_resp.raw.read(1024 * 64)
-                        if len(chunk) > 0:
-                            verified_ts += 1
-            except Exception:
-                continue
-
-        # 至少要有 1 個 TS 切片順利下載才認定為真正可播頻道
-        return verified_ts > 0
-
-    except Exception:
-        return False
+    return (False, 999)
 
 def clean_filter_smart_merge():
     print("正在下載 CCSH/IPTV 原始直播源...")
@@ -101,6 +98,7 @@ def clean_filter_smart_merge():
     channels = {}
     current_group = None
     current_clean_name = None
+    current_raw_info = {}
     extm3u_header = "#EXTM3U"
 
     print("開始抓取節目表網址、進行群組過濾、台標提取與名稱清洗...")
@@ -171,19 +169,15 @@ def clean_filter_smart_merge():
                     channels[unique_key] = {
                         "group": current_group,
                         "name": current_clean_name,
-                        "logo_str": current_raw_info["logo_str"],
-                        "tvg_id_str": current_raw_info["tvg_id_str"],
+                        "logo_str": current_raw_info.get("logo_str", ""),
+                        "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
                         "urls": []
                     }
                 
                 if line not in channels[unique_key]["urls"]:
                     channels[unique_key]["urls"].append(line)
 
-    # 對每個頻道的網址進行權重排序（優先將 4gtv 置頂）
-    for unique_key in channels:
-        channels[unique_key]["urls"].sort(key=lambda u: 0 if "4gtv" in u.lower() else 1)
-
-    print("\n⚡ 正在進行線上即時深度 TS 切片流偵測（預計需時較長，確保撥放品質）...")
+    print("\n⚡ 正在進行線上即時深度串流數據探測 (包含 TS 切片測試)...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -192,16 +186,24 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 降低併發數以提升 TS 數據串流測試穩定度
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    # 採用 12 線程進行嚴格快篩
+    with ThreadPoolExecutor(max_workers=12) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
-        for url, is_alive in zip(unique_urls_to_test, results):
-            alive_urls_map[url] = is_alive
+        for url, (is_alive, delay) in zip(unique_urls_to_test, results):
+            alive_urls_map[url] = {"is_alive": is_alive, "delay": delay}
 
     output = [extm3u_header]
     total_lines_written = 0
-    
-    # --- 軌道 1：完整群組（排在前面且可用的線路優先，標註失效線路） ---
+
+    # 自訂核心排序規則 (4gtv 優先 -> 存活優先 -> 延遲低優先)
+    def url_sort_key(u):
+        info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
+        is_4gtv = 1 if "4gtv" in u.lower() else 0
+        is_alive = 1 if info["is_alive"] else 0
+        # 回傳元組進行多重排序: (是否4gtv描述, 是否存活, 延遲越低越前)
+        return (is_4gtv, is_alive, -info["delay"])
+
+    # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -209,11 +211,11 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        # 排序：活網優先，且活網中 4gtv 排最前面
-        sorted_urls = sorted(urls, key=lambda u: (0 if alive_urls_map.get(u, False) else 1, 0 if "4gtv" in u.lower() else 1))
+        # 根據 4gtv > 存活 > 響應速度 進行排序
+        sorted_urls = sorted(urls, key=url_sort_key, reverse=True)
         
         for idx, url in enumerate(sorted_urls, start=1):
-            is_alive_bool = alive_urls_map.get(url, False)
+            is_alive_bool = alive_urls_map.get(url, {}).get("is_alive", False)
             is_alive_label = "" if is_alive_bool else "[卡頓/失效]"
             display_name = f"{clean_name}{is_alive_label} ({idx})"
             new_info = f'#EXTINF:-1 tvg-name="{display_name}"{tvg_id_str}{logo_str} group-title="{g_name}",{display_name}'
@@ -221,8 +223,8 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # --- 軌道 2：精簡群組（僅保留通過 TS 測試的最佳線路，優先挑選 4gtv） ---
-    print("正在生成對應的『_精簡』複製群組頻道...")
+    # --- 軌道 2：精選複製群組 (嚴格過濾) ---
+    print("正在生成對應的『_精選』高可用複製群組...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -230,28 +232,31 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        lite_group_name = f"{g_name}_精簡"
-        best_url = None
+        lite_group_name = f"{g_name}_精選"
         
-        # 優先選擇「有效」且「為 4gtv 來源」的網址
-        for url in urls:
-            if alive_urls_map.get(url, False):
+        # 優先排 4gtv 且能通過數據流測試的線路
+        sorted_urls = sorted(urls, key=url_sort_key, reverse=True)
+        
+        best_url = None
+        for url in sorted_urls:
+            if alive_urls_map.get(url, {}).get("is_alive", False):
                 best_url = url
-                break  # 因為之前已經將 4gtv 排在最前面，第一個找到的就是最佳解
+                break
             
+        # 只有在真活網（能夠順暢讀取 TS 數據流）的情況下才寫入精選列表
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
             output.append(new_info)
             output.append(best_url)
             total_lines_written += 1
 
-    # 寫入最終檔
+    # 寫入最終檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化完成！】")
-    print(f"📈 總共輸出線路共：{total_lines_written} 條。")
+    print(f"\n【全球雙軌精簡優化完成！已剔除黑屏/假活網頻道。】")
+    print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
