@@ -6,13 +6,13 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
+# 1. 補全 CCSH/IPTV 專案最新的原始 M3U 直播源網址
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-# 3. 您的專屬頻道黑名單
+# 3. 頻道黑名單
 EXCLUDE_CHANNELS = [
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
     "星空卫视", "Channel[V]", "Channel V", "ChannelV",
@@ -24,8 +24,9 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【極限防禦型 - 串流即時快篩演算法】
-    採用 BaseException 頂級安全鎖，3秒極速超時切斷，專殺假活網與失效來源
+    【強化型 - 串流即時深度驗證】
+    1. 嚴格鎖定 HTTP 200/206 狀態碼（排除 403/404 假活網）
+    2. 深度驗證 m3u8 是否包含播放清單標籤，防止偽造回應
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
@@ -33,23 +34,20 @@ def check_url_alive(url):
         'Connection': 'close'
     }
     
-    # 快速握手探測
     try:
         with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
-            if response.status_code < 500:
-                return True
+            if response.status_code in (200, 206):
+                # 讀取前 512 位元組驗證標籤
+                content_sample = response.raw.read(512).decode('utf-8', errors='ignore')
+                
+                # 檢查是否為標準 m3u8 格式內容
+                if any(tag in content_sample for tag in ["#EXTM3U", "#EXTINF", "#EXT-X-STREAM-INF", "#EXT-X-TARGETDURATION"]):
+                    return True
+                elif "m3u8" not in url.lower():
+                    return True
+            return False
     except BaseException:
         return False
-        
-    # HEAD 探測保底
-    try:
-        response = requests.head(url, headers=headers, timeout=2, allow_redirects=True, verify=False)
-        if response.status_code < 500:
-            return True
-    except BaseException:
-        return False
-        
-    return False
 
 def clean_filter_smart_merge():
     print("正在下載 CCSH/IPTV 原始直播源...")
@@ -68,6 +66,7 @@ def clean_filter_smart_merge():
     channels = {}
     current_group = None
     current_clean_name = None
+    current_raw_info = {}
     extm3u_header = "#EXTM3U"
 
     print("開始抓取節目表網址、進行群組過濾、台標提取與名稱清洗...")
@@ -138,8 +137,8 @@ def clean_filter_smart_merge():
                     channels[unique_key] = {
                         "group": current_group,
                         "name": current_clean_name,
-                        "logo_str": current_raw_info["logo_str"],
-                        "tvg_id_str": current_raw_info["tvg_id_str"],
+                        "logo_str": current_raw_info.get("logo_str", ""),
+                        "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
                         "urls": []
                     }
                 
@@ -158,16 +157,17 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    # 執行多線程測試
+    with ThreadPoolExecutor(max_workers=15) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
 
-    # 第三階段：重新組合輸出
+    # 輸出組合
     output = [extm3u_header]
     total_lines_written = 0
     
-    # --- 軌道 1：原始完整群組 ---
+    # --- 軌道 1：完整群組（標記失效） ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -175,6 +175,7 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
+        # 將活網優先排列
         sorted_urls = sorted(urls, key=lambda u: 1 if alive_urls_map.get(u, False) else 0, reverse=True)
         
         for idx, url in enumerate(sorted_urls, start=1):
@@ -186,7 +187,7 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # --- 軌道 2：複製一份「_精簡」群組 ---
+    # --- 軌道 2：精簡群組（剔除全軍覆沒頻道） ---
     print("正在生成對應的『_精簡』複製群組頻道...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -198,15 +199,10 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
-        # 挑選通過快篩探測的第一個活網
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
                 break
-                
-        # 💡【關鍵修正】移除舊有的 urls 盲目保底邏輯！
-        # 如果 best_url 依然是 None（代表該台全軍覆沒），就不會執行下方的 output.append
-        # 這樣該頻道就會直接從「_精簡」群組中徹底隱形、不再顯示！
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
@@ -214,7 +210,7 @@ def clean_filter_smart_merge():
             output.append(best_url)
             total_lines_written += 1
 
-    # 寫入最終成品檔案
+    # 寫入檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
