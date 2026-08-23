@@ -12,13 +12,14 @@ ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-# 3. 您的專屬頻道黑名單（精準配對並剔除）
+# 3. 您的專屬頻道黑名單（💡 已幫您加入 無线新闻、无线新闻、ViuTV 進行精準剔除）
 EXCLUDE_CHANNELS = [
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
     "星空卫视", "Channel[V]", "Channel V", "ChannelV",
     "TVBPearl", "TVB Pearl", "TVB明珠台",
     "TVBPlus", "TVB Plus", "TVBJ2",
-    "TVB星河", "TVB翡翠台", "TVB翡翠"
+    "TVB星河", "TVB翡翠台", "TVB翡翠",
+    "无线新闻", "無綫新聞", "ViuTV"
 ]
 
 def check_url_alive(url):
@@ -36,7 +37,6 @@ def check_url_alive(url):
     # 測試 1：HEAD 快速探測
     try:
         response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        # 💡【全新邏輯修復】只要伺服器有回應且狀態碼小於 500 (代表不是伺服器死機)，皆視為活網
         if response.status_code < 500:
             return True
     except:
@@ -44,9 +44,7 @@ def check_url_alive(url):
     
     # 測試 2：GET 輕量級流探測（防禦不支援 HEAD 的伺服器）
     try:
-        # stream=True 只抓取握手階段與前 1 個字節，絕對不下載整份視訊檔案，極速且安全
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
-        # 💡【全新邏輯修復】只要伺服器有回應且狀態碼小於 500，皆視為活網
         if response.status_code < 500:
             return True
     except:
@@ -211,31 +209,27 @@ def clean_filter_smart_merge():
         best_url = None
         first_4gtv_url = None
         
-        # 事先抓出名單中包含 4gtv 的第一個網址
         for url in urls:
             if "4gtv" in url.lower():
                 first_4gtv_url = url
                 break
         
-        # 【策略 1】優先選活著的 4GTV 線路
         for url in urls:
             if "4gtv" in url.lower() and alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 【策略 2】如果沒有活著的 4GTV，精準找出真正活著的普通線路
         if not best_url:
             for url in urls:
                 if alive_urls_map.get(url, False):
                     best_url = url
                     break
                     
-        # 【策略 3：終極保底】如果連全新偵測法都認為全軍覆沒
         if not best_url:
             if first_4gtv_url:
-                best_url = first_4gtv_url  # 有 4GTV 就強推 4GTV 網址
+                best_url = first_4gtv_url
             elif urls:
-                best_url = urls[0]  # 完全沒有任何 4GTV 時，回退抓取第一條網址字串
+                best_url = urls[0]
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
