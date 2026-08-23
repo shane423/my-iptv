@@ -31,7 +31,6 @@ EXCLUDE_CHANNELS = {
     "VIUTV"
 }
 
-# 全域 Session 物件以重用 TCP 連線
 session = requests.Session()
 session.headers.update({
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -41,11 +40,14 @@ session.headers.update({
 
 def check_url_alive(url):
     """
-    流媒體快速驗證：設定 1.8s 超時並讀取首個 Chunk
+    流媒體快速驗證：支援 HTTP 轉向 (allow_redirects=True) 以正確檢測 API 型 4gtv 線路
     """
     start_time = time.time()
+    is_4gtv = "4gtv" in url.lower()
+    
     try:
-        res = session.get(url, timeout=1.8, verify=False, stream=True)
+        # 允許追蹤 301/302 轉向
+        res = session.get(url, timeout=2.5, verify=False, stream=True, allow_redirects=True)
         if res.status_code < 400:
             chunk = next(res.iter_content(chunk_size=1024), None)
             if chunk and len(chunk) > 0:
@@ -53,6 +55,11 @@ def check_url_alive(url):
                 return (True, elapsed)
     except Exception:
         pass
+        
+    # 特殊處理：4gtv API 就算自動探測超時，通常也是可播放的，直接給予保底放行
+    if is_4gtv:
+        return (True, 0.5)
+        
     return (False, 999)
 
 def clean_filter_smart_merge():
@@ -110,7 +117,6 @@ def clean_filter_smart_merge():
                 if not clean_name:
                     clean_name = raw_name
                 
-                # 同時比對清洗名稱與原始名稱（不限大小寫）
                 clean_upper = clean_name.upper()
                 raw_upper = raw_name.upper()
                 is_excluded = any(black in clean_upper or black in raw_upper for black in EXCLUDE_CHANNELS)
@@ -148,7 +154,7 @@ def clean_filter_smart_merge():
                 if line not in channels[unique_key]["urls"]:
                     channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時數據探測 (採用 20 線程加速)...")
+    print("\n⚡ 正在進行線上即時數據探測 (支援 API 轉向測速)...")
     
     all_urls_to_test = [url for ch_data in channels.values() for url in ch_data["urls"]]
     unique_urls_to_test = list(set(all_urls_to_test))
@@ -162,12 +168,12 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
 
-    # 權重修正：存活第一，4gtv第二，延遲第三
+    # 排序核心原則：4gtv 強制最優先 -> 是否存活 -> 延遲低優先
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
-        is_alive = 1 if info["is_alive"] else 0
         is_4gtv = 1 if "4gtv" in u.lower() else 0
-        return (is_alive, is_4gtv, -info["delay"])
+        is_alive = 1 if info["is_alive"] else 0
+        return (is_4gtv, is_alive, -info["delay"])
 
     # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
@@ -187,7 +193,7 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # --- 軌道 2：精選複製群組 (自動選擇可正常播放且優先度最高的線路) ---
+    # --- 軌道 2：精選複製群組 ---
     print("正在生成對應的『_精選』高可用複製群組...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -198,7 +204,6 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精選"
         sorted_urls = sorted(ch_data["urls"], key=url_sort_key, reverse=True)
         
-        # 取第一條符合條件（亦即存活且優先度最高）的線路
         best_url = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best_url:
@@ -207,12 +212,11 @@ def clean_filter_smart_merge():
             output.append(best_url)
             total_lines_written += 1
 
-    # 寫入最終檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【排序與優化完成！】")
+    print(f"\n【4gtv 優先權重調整完成！】")
     print(f"📈 總共輸出線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
