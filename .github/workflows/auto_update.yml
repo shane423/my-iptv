@@ -1,66 +1,56 @@
-name: 自動更新 IPTV 播放清單 
+name: 自動更新 IPTV 播放清單
 
 on:
-schedule: 
+  schedule:
+    # 台北時間 (GMT+8) 凌晨 05:00，對應的國際標準時間 (UTC) 為前一天晚上的 21:00
+    - cron: '0 21 * * *'
+  workflow_dispatch: # 保留手動點擊按鈕強制執行更新的功能
 
-### 台北時間 (GMT+8) 凌晨 05:00，對應的國際標準時間 (UTC) 為前一天晚上的 21:00
-
-* cron: '0 21 * * *'
-workflow_dispatch:      # 保留手動點擊按鈕強制執行更新的功能
-
-### 強制賦予工作流最高層級的寫入與認證宣告
-
+# 強制賦予工作流最高層級的寫入與認證宣告
 permissions:
-contents: write 
+  contents: write
 
 jobs:
-build:
-runs-on: ubuntu-latest 
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-### 1. 簽出專案原始碼（💡關鍵修正：明確注入 GITHUB_TOKEN 安全密鑰，解鎖寫入權限）
+    steps:
+      # 1. 簽出專案原始碼（💡關鍵修正：明確注入 GITHUB_TOKEN 安全密鑰，解鎖寫入權限）
+      - name: 簽出專案原始碼 (Checkout Repository)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
-* name: 簽出專案原始碼 (Checkout Repository)
-uses: actions/checkout@v4
-with:
-token: ${{ secrets.GITHUB_TOKEN }}
-persist-credentials: true
+      # 2. 設定 Python 環境
+      - name: 設定 Python 環境 (Set up Python)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-### 2. 設定 Python 環境
+      # 3. 安裝 Python 活網偵測必要套件
+      - name: 安裝 Python 活網偵測必要套件 (Install Dependencies)
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests urllib3
 
-* name: 設定 Python 環境 (Set up Python)
-uses: actions/setup-python@v5
-with:
-python-version: '3.10'
+      # 4. 執行智慧清洗與雙軌精簡偵測腳本
+      - name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
+        run: python merge_iptv.py
 
-### 3. 安裝 Python 活網偵測必要套件
-
-* name: 安裝 Python 活網偵測必要套件 (Install Dependencies)
-run: |
-python -m pip install --upgrade pip
-pip install requests urllib3
-
-### 4. 執行智慧清洗與雙軌精簡偵測腳本
-
-* name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
-run: python merge_iptv.py
-
-### 5. 提交並推送最新 M3U 直播源（💡關鍵修正：使用標準安全驗證推送）
-
-* name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
-run: |
-git config --local user.email "actions@github.com"
-git config --local user.name "GitHub Action"
-git add taiwan_live.m3u
-
-### 檢查是否有檔案變動，避免無變動時提交報錯中斷
-
-if ! git diff --quiet && ! git diff --staged --quiet; then
-git commit -m "自動同步：更新台灣雙軌活網精簡直播源 [$(date '+%Y-%m-%d %H:%M:%S')]" 
-
-### 修正後的標準安全推送指令
-
-git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ github.repository .git" HEAD:{{ github.ref_name }}
-else
-echo "直播源無任何變動，跳過本次推送。"
-fi
+      # 5. 提交並推送最新 M3U 直播源（💡關鍵修正：使用標準安全驗證推送）
+      - name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Action"
+          git add taiwan_live.m3u
+          
+          # 檢查是否有檔案變動，避免無變動時提交報錯中斷
+          if ! git diff --quiet && ! git diff --staged --quiet; then
+            git commit -m "自動同步：更新台灣雙軌活網精簡直播源 [$(date '+%Y-%m-%d %H:%M:%S')]"
+            
+            # 修正後的標準安全推送指令
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@://github.com{{ github.repository }}.git" HEAD:${{ github.ref_name }}
+          else
+            echo "直播源無任何變動，跳過本次推送。"
+          fi
