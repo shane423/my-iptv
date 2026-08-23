@@ -24,11 +24,11 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【終極 HLS 串流特徵深度驗證演算法】
-    1. 平等對待 4GTV 與一般源，徹底過濾死掉的 4GTV
-    2. 深度下載切片層級（iter_content），5秒內抓不到實質 HLS 切片宣告的卡死垃圾源一律淘汰
+    【終極 HLS 串流特徵深度驗證演算法 - 崩潰安全防禦版】
+    1. 平等對待 4GTV 與一般源，徹底過濾死掉的 4GTV 與 7秒卡死垃圾源
+    2. 深度下載切片層級（iter_content），4秒內抓不到實質 HLS 切片宣告一律淘汰
+    3. 💡【關鍵修復】防止部分伺服器無 Content-Type 標頭導致的 lower() 崩潰漏洞
     """
-    # 使用通用高相容性的代理標頭，偽裝成台灣本地電視盒
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
@@ -36,15 +36,17 @@ def check_url_alive(url):
         'Connection': 'keep-alive'
     }
     
-    # 核心深度串流體檢（專殺只能看7秒的假活網與失效4GTV）
+    # 核心深度串流體檢
     try:
-        # 將超時限制縮短至極其嚴苛的 4 秒，不給垃圾源任何拖延排隊的機會
+        # 將超時限制縮短至極其嚴苛的 4 秒，快速淘汰排隊垃圾源
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
         
         if response.status_code < 400:
-            # 只要是 m3u8 或者是串流媒體格式
-            if "m3u8" in url.lower() or "mpegurl" in response.headers.get("Content-Type", "").lower():
-                # 💡 強制讀取前 2048 字節。只能播幾秒就卡住的假線路，在切片握手階段就會卡住或回傳空資料
+            # 💡【空值安全防禦】確保獲取的內容類型絕對是字串，即使為 None 也能安全轉換成空字串
+            content_type = response.headers.get("Content-Type") or ""
+            
+            if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
+                # 強制讀取前 2048 字節。只能播幾秒就卡住的假線路，在切片握手階段就會卡住或回傳空資料
                 chunk = response.iter_content(chunk_size=2048)
                 content_sample = next(chunk).decode('utf-8', errors='ignore')
                 
@@ -60,7 +62,6 @@ def check_url_alive(url):
     # 保底輕量化 HEAD 探測 (防禦少部分禁止海外機房 GET 卻真實存在的來源)
     try:
         response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
-        # 只要伺服器肯給出回應（且不是 500 以上的死機），皆給予通過，保留至完整列表墊底
         if response.status_code < 500:
             return True
     except:
@@ -161,7 +162,6 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 💡 將 4GTV 排在前面供優先偵測，但不再給予無條件豁免權
                     if "4gtv" in line.lower():
                         channels[unique_key]["urls"].insert(0, line)
                     else:
@@ -217,7 +217,7 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
-        # 💡【全新精簡過濾機制】平等海選：誰能通過最嚴格的串流切片深度探測，誰就是第一名
+        # 精平海選：誰能通過最嚴格的串流切片深度探測，誰就是第一名
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
