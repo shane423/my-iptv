@@ -15,8 +15,11 @@ SOURCES = [
     "https://live.zbds.top/tv/iptv4.m3u"
 ]
 
-# 其他來源要抓取的簡體群組
+# GitHub 等其他來源要抓取的簡體群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"}
+
+# zbds.top 來源指定發生的群組（只抓這兩個）
+ZBDS_TARGET_GROUPS = {"儿童频道", "电影频道"}
 
 # 映射至 Kodi 顯示的繁體群組名稱
 GROUP_NAME_MAP = {
@@ -144,9 +147,15 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                if not is_zbds and not is_4gtv and raw_g_name not in TARGET_GROUPS:
-                    current_group = None
-                    continue
+                # 判定邏輯：若為 zbds 來源則只允許「儿童频道」與「电影频道」；其他來源按 TARGET_GROUPS
+                if is_zbds:
+                    if raw_g_name not in ZBDS_TARGET_GROUPS:
+                        current_group = None
+                        continue
+                else:
+                    if not is_4gtv and raw_g_name not in TARGET_GROUPS:
+                        current_group = None
+                        continue
 
                 g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(raw_g_name, raw_g_name)
 
@@ -203,17 +212,17 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 排序核心邏輯：依照指定群組順序（台灣 -> 電影 -> 電視劇 -> 卡通 -> NewTV）
+    # 按群組順序排序（台灣 -> 電影 -> 電視劇 -> 卡通 -> NewTV）
     def channel_group_sort_key(item):
         ch = item[1]
         group = ch["group"]
         if group in ORDERED_GROUPS:
             return ORDERED_GROUPS.index(group)
-        return 999  # 未在指定順序中的其他群組擺最後面
+        return 999
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 1. 優先寫入按順序排列的「精選版」頻道
+    # 1. 優先寫入「精選版」頻道
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
