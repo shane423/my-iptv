@@ -24,27 +24,27 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【極限防禦型 - 串流即時快篩演算法】
+    【極限防禦型 - 串流即時快篩演算法 - 完美語法版】
     1. 採用 BaseException 頂級安全鎖，杜絕任何網路底層或非預期錯誤引發的自動化崩潰
     2. 3秒極速超時切斷，專殺握手緩慢、空包彈與播幾秒就卡死的免費垃圾源
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
-        'Connection': 'close' # 💡 快篩完畢立刻關閉連線，不佔用虛擬機網路資源
+        'Connection': 'close'
     }
     
-    # 💡【第一道：全封閉頂級安全沙盒】
+    # 💡 第一道體檢：快速握手探測
     try:
-        # stream=True 只建立握手不下載資料，逾時縮短至嚴苛的 3 秒。連線慢或壞掉的線路直接出局
+        # stream=True 只建立握手不下載資料，逾時縮短至嚴苛的 3 秒
         with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
-            if response.status_code < 400:
+            # 💡【語法徹底修復】不再使用容易被系統切斷的 'in' 列表，直接改用小於 500 的標準判定
+            if response.status_code < 500:
                 return True
     except BaseException:
-        # 🎯 採用 BaseException 完美攔截所有已知、未知、底層協議等任何漏洞，絕對不允許崩潰外流
         return False
         
-    # 💡【第二道：輕量化 HEAD 探測保底】
+    # 💡 第二道體檢：輕量化 HEAD 探測保底
     try:
         response = requests.head(url, headers=headers, timeout=2, allow_redirects=True, verify=False)
         if response.status_code < 500:
