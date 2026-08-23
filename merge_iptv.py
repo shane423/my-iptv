@@ -6,11 +6,11 @@ import requests
 import urllib3
 from urllib.parse import urljoin
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, wait
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ⚡ 將全域 Socket 超時放寬至 2.5 秒（避免把反應稍慢但正常可看的頻道砍掉）
+# ⚡ 全域 Socket 超時放寬至 2.5 秒，避免把反應稍慢的優質頻道砍掉
 socket.setdefaulttimeout(2.5)
 
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
@@ -30,7 +30,7 @@ HEADERS = {
 
 def check_url_alive(url):
     """
-    穩健型 M3U8 / 串流線路檢測
+    穩健型 M3U8 / 串流線路檢測 (自動釋放 Socket 資源與雙層 M3U8 解析)
     """
     start_time = time.time()
     
@@ -65,7 +65,7 @@ def check_url_alive(url):
                     return url, False, 999
                 first_target = urljoin(sub_res.url, lines[0])
 
-            # Step 2: 實際測試驗證 TS / 數據片段
+            # Step 2: 實際測試驗證 TS / 數據片段 (使用 with 防止連線洩漏)
             with session.get(first_target, timeout=(1.2, 1.8), stream=True, allow_redirects=True) as ts_res:
                 if ts_res.status_code < 400:
                     chunk = next(ts_res.iter_content(chunk_size=1024), None)
@@ -158,7 +158,7 @@ def clean_filter_smart_merge():
 
     alive_urls_map = {}
     
-    # 免測頻道 (例如 4gtv 直播源) 直接標記為可用
+    # 4gtv 等免測線路直接預設可用
     for u in all_urls:
         if "4gtv" in u.lower():
             alive_urls_map[u] = {"is_alive": True, "delay": 0.01}
@@ -166,22 +166,26 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
     start_time = time.time()
 
-    executor = ThreadPoolExecutor(max_workers=35)
-    future_to_url = {executor.submit(check_url_alive, url): url for url in scan_targets}
+    # ⚡ GitHub Actions 環境優化：降低並發至 20 並加入 45 秒強制截斷，防止 CI/CD 卡死
+    executor = ThreadPoolExecutor(max_workers=20)
+    futures = {executor.submit(check_url_alive, url): url for url in scan_targets}
 
-    for future in as_completed(future_to_url):
-        url = future_to_url[future]
+    done, pending = wait(futures.keys(), timeout=45.0)
+
+    # 處理順利完成的任務
+    for future in done:
         try:
             u, is_alive, delay = future.result()
             alive_urls_map[u] = {"is_alive": is_alive, "delay": delay}
         except Exception:
-            alive_urls_map[url] = {"is_alive": False, "delay": 999}
+            pass
 
-    executor.shutdown(wait=False)
+    # 處理被強制截斷/逾時的任務：給予預設保護，確保不誤刪
+    for future in pending:
+        u = futures[future]
+        alive_urls_map[u] = {"is_alive": True, "delay": 2.5}
 
-    for u in all_urls:
-        if u not in alive_urls_map:
-            alive_urls_map[u] = {"is_alive": True, "delay": 2.5}
+    executor.shutdown(wait=False, cancel_futures=True)
 
     output = [extm3u_header]
     
@@ -193,7 +197,7 @@ def clean_filter_smart_merge():
             -info["delay"]
         )
 
-    # 1. 輸出完整版 (每個 Group 的編號各自從 1 開始計數)
+    # 1. 輸出完整版 (每個群組編號皆由 1 開始)
     full_group_counters = defaultdict(int)
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
@@ -209,7 +213,7 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{grp}",{name}')
             output.append(url)
 
-    # 2. 輸出精選版 (精選群組的編號也各自從 1 開始計數)
+    # 2. 輸出精選版 (精選群組編號皆由 1 開始)
     select_group_counters = defaultdict(int)
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
