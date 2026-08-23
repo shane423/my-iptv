@@ -3,132 +3,80 @@ import time
 import requests
 import urllib3
 from urllib.parse import urljoin
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
-
-# 2. 保留的 6 大分組群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"}
 
-# 3. 專屬頻道黑名單（補全繁簡體）
 EXCLUDE_CHANNELS = {
-    # 鳳凰系列
-    "鳳凰中文", "凤凰中文",
-    "鳳凰資訊", "凤凰资讯",
-    "鳳凰香港", "凤凰香港",
-    "鳳凰電影", "凤凰电影",
-    # TVB / 無線系列
-    "TVBPEARL", "TVB PEARL", "TVB明珠台",
-    "TVBPLUS", "TVB PLUS", "TVBJ2",
-    "TVB星河", "TVB翡翠台", "TVB翡翠",
-    "無線新聞", "無綫新聞", "无线新闻",
-    # 其他頻道
-    "星空衛視", "星空卫视",
-    "CHANNEL[V]", "CHANNEL V", "CHANNELV",
-    "VIUTV"
+    "鳳凰中文", "凤凰中文", "鳳凰資訊", "凤凰资讯", "鳳凰香港", "凤凰香港", "鳳凰電影", "凤凰电影",
+    "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
+    "TVB星河", "TVB翡翠台", "TVB翡翠", "無線新聞", "無綫新聞", "无线新闻",
+    "星空衛視", "星空卫视", "CHANNEL[V]", "CHANNEL V", "CHANNELV", "VIUTV"
 }
 
-session = requests.Session()
-session.headers.update({
+HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': '*/*',
-    'Connection': 'keep-alive'
-})
+    'Accept': '*/*'
+}
 
 def check_url_alive(url):
-    """
-    深度流媒體驗證：
-    1. 4gtv 線路無條件保底放行（視為存活且延遲為 0）
-    2. 抓取 M3U8 檔並解析 TS 切片網址
-    3. 下載實體 TS 切片，驗證是否具備影音數據流（長度 > 1KB）
-    """
-    # ⚡ 4gtv 線路無條件保底放行
+    """防卡死單機連線測試"""
     if "4gtv" in url.lower():
-        return (True, 0.0)
+        return url, True, 0.0
 
     start_time = time.time()
     try:
-        # Step 1: 請求主 m3u8 檔 (放寬至 5.0 秒，避免網路波動誤判)
-        res = session.get(url, timeout=5.0, verify=False, allow_redirects=True)
+        # ⚡ 不使用 Session，改用單次 request，強行 2.0 秒超時斷開
+        res = requests.get(url, headers=HEADERS, timeout=2.0, verify=False, allow_redirects=True)
         if res.status_code >= 400:
-            return (False, 999)
-        
+            return url, False, 999
+
         content_type = res.headers.get('Content-Type', '').lower()
         text = res.text
 
-        # 如果回應的是 m3u8 播放清單
         if "#EXTM3U" in text or "mpegurl" in content_type:
-            ts_urls = []
-            for line in text.splitlines():
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    ts_urls.append(urljoin(res.url, line))
-            
+            ts_urls = [urljoin(res.url, line.strip()) for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
             if not ts_urls:
-                return (False, 999)
+                return url, False, 999
 
-            # 若遇到 Master Playlist (嵌套 M3U8)，對第一個子 M3U8 再做一次解析
             first_target = ts_urls[0]
-            if ".m3u8" in first_target.lower() or "mpegurl" in content_type:
-                sub_res = session.get(first_target, timeout=4.0, verify=False, allow_redirects=True)
+            if ".m3u8" in first_target.lower():
+                sub_res = requests.get(first_target, headers=HEADERS, timeout=1.5, verify=False, allow_redirects=True)
                 if sub_res.status_code >= 400:
-                    return (False, 999)
-                
-                sub_ts_urls = []
-                for sub_line in sub_res.text.splitlines():
-                    sub_line = sub_line.strip()
-                    if sub_line and not sub_line.startswith("#"):
-                        sub_ts_urls.append(urljoin(sub_res.url, sub_line))
-                ts_urls = sub_ts_urls
+                    return url, False, 999
+                ts_urls = [urljoin(sub_res.url, line.strip()) for line in sub_res.text.splitlines() if line.strip() and not line.strip().startswith("#")]
 
             if not ts_urls:
-                return (False, 999)
+                return url, False, 999
 
-            # Step 2: 驗證前 1~2 個 TS 切片檔 (放寬至 4.0 秒)
-            valid_ts_count = 0
-            test_ts_targets = ts_urls[:2]
-            
-            for ts_url in test_ts_targets:
-                try:
-                    ts_res = session.get(ts_url, timeout=4.0, verify=False, stream=True, allow_redirects=True)
-                    if ts_res.status_code < 400:
-                        chunk = next(ts_res.iter_content(chunk_size=10240), None)
-                        if chunk and len(chunk) >= 1024:
-                            valid_ts_count += 1
-                except Exception:
-                    continue
-
-            if valid_ts_count > 0:
-                elapsed = time.time() - start_time
-                return (True, elapsed)
-
-        # 非 M3U8 的直接影音串流檔處理
+            # 只測第 1 個 TS
+            ts_res = requests.get(ts_urls[0], headers=HEADERS, timeout=1.5, verify=False, stream=True, allow_redirects=True)
+            if ts_res.status_code < 400:
+                chunk = next(ts_res.iter_content(chunk_size=1024), None)
+                if chunk and len(chunk) >= 512:
+                    return url, True, time.time() - start_time
         else:
-            chunk = next(res.iter_content(chunk_size=10240), None)
-            if chunk and len(chunk) >= 1024:
-                elapsed = time.time() - start_time
-                return (True, elapsed)
+            chunk = next(res.iter_content(chunk_size=1024), None)
+            if chunk and len(chunk) >= 512:
+                return url, True, time.time() - start_time
 
     except Exception:
         pass
 
-    return (False, 999)
+    return url, False, 999
 
 def clean_filter_smart_merge():
-    print("正在下載 CCSH/IPTV 原始直播源...")
+    # ⚡ flush=True 強制輸出 Log 到 GitHub Actions 畫面
+    print("正在下載 CCSH/IPTV 原始直播源...", flush=True)
     try:
-        response = session.get(ORIGINAL_URL, timeout=15)
-        response.encoding = 'utf-8' 
-        if response.status_code != 200:
-            print(f"錯誤：無法連線直播源，HTTP 狀態碼: {response.status_code}")
-            return
+        response = requests.get(ORIGINAL_URL, headers=HEADERS, timeout=10)
+        response.encoding = 'utf-8'
         lines = response.text.splitlines()
     except Exception as e:
-        print(f"網路連線異常: {e}")
+        print(f"下載失敗: {e}", flush=True)
         return
 
     channels = {}
@@ -137,145 +85,98 @@ def clean_filter_smart_merge():
     current_raw_info = {}
     extm3u_header = "#EXTM3U"
 
-    print("開始抓取節目表網址、進行群組過濾、台標提取與名稱清洗...")
-
     for line in lines:
         line = line.strip()
         if not line:
             continue
-            
         if line.startswith("#EXTM3U"):
             if 'x-tvg-url=' in line:
                 extm3u_header = line
             continue
-            
         if line.startswith("#EXTINF"):
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
-                
             if g_name not in TARGET_GROUPS:
                 current_group = None
-                current_clean_name = None
                 continue
-                
             if g_name == "港澳台":
                 g_name = "台灣"
-                
+
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
-                
-                clean_name = raw_name
-                clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
-                clean_name = re.sub(r'[\s\(\停\（\[]+\d+[\s\)\營\]]+', '', clean_name)
-                clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name).strip()
-                
-                if not clean_name:
-                    clean_name = raw_name
-                
-                clean_upper = clean_name.upper()
-                raw_upper = raw_name.upper()
-                is_excluded = any(black in clean_upper or black in raw_upper for black in EXCLUDE_CHANNELS)
-                
-                if is_excluded:
+                clean_name = re.sub(r'[\-\s_#]+\d+$', '', raw_name)
+                clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name).strip() or raw_name
+
+                if any(b in clean_name.upper() or b in raw_name.upper() for b in EXCLUDE_CHANNELS):
                     current_group = None
-                    current_clean_name = None
                     continue
-                
+
                 logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
                 tvg_id_match = re.search(r'tvg-id=["\']([^"\']+)["\']', line)
                 logo_str = f' tvg-logo="{logo_match.group(1)}"' if logo_match else ""
                 tvg_id_str = f' tvg-id="{tvg_id_match.group(1)}"' if tvg_id_match else ""
-                
+
                 current_group = g_name
                 current_clean_name = clean_name
                 current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str}
-            else:
-                current_group = None
-                current_clean_name = None
-                
-        elif line.startswith("http"):
-            if current_group and current_clean_name:
-                unique_key = f"{current_group}___{current_clean_name}"
-                
-                if unique_key not in channels:
-                    channels[unique_key] = {
-                        "group": current_group,
-                        "name": current_clean_name,
-                        "logo_str": current_raw_info.get("logo_str", ""),
-                        "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
-                        "urls": []
-                    }
-                
-                if line not in channels[unique_key]["urls"]:
-                    channels[unique_key]["urls"].append(line)
+        elif line.startswith("http") and current_group and current_clean_name:
+            key = f"{current_group}___{current_clean_name}"
+            if key not in channels:
+                channels[key] = {
+                    "group": current_group, "name": current_clean_name,
+                    "logo_str": current_raw_info.get("logo_str", ""),
+                    "tvg_id_str": current_raw_info.get("tvg_id_str", ""), "urls": []
+                }
+            if line not in channels[key]["urls"]:
+                channels[key]["urls"].append(line)
 
-    print("\n⚡ 正在進行 TS 切片級深度流媒體探測 (兼顧檢測準確度與 2-3 分鐘平穩耗時)...")
-    
-    all_urls_to_test = [url for ch_data in channels.values() for url in ch_data["urls"]]
-    unique_urls_to_test = list(set(all_urls_to_test))
+    all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
+    print(f"開始掃描 {len(all_urls)} 條線路...", flush=True)
+
     alive_urls_map = {}
-    
-    start_test_time = time.time()
-    
-    # 使用 15 執行緒配合較寬鬆的逾時，確保高品質篩選
-    with ThreadPoolExecutor(max_workers=15) as executor:
-        results = executor.map(check_url_alive, unique_urls_to_test)
-        for url, (is_alive, delay) in zip(unique_urls_to_test, results):
-            alive_urls_map[url] = {"is_alive": is_alive, "delay": delay}
+    start_time = time.time()
+
+    # ⚡ 限時 35 秒，時間一到直接 break
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = [executor.submit(check_url_alive, url) for url in all_urls]
+        for future in as_completed(futures):
+            if time.time() - start_time > 35:
+                print("⚡ 已達 35 秒上限，強制截斷剩餘測試！", flush=True)
+                break
+            try:
+                u, is_alive, delay = future.result()
+                alive_urls_map[u] = {"is_alive": is_alive, "delay": delay}
+            except Exception:
+                pass
 
     output = [extm3u_header]
-    total_lines_written = 0
-
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
-        is_4gtv = 1 if "4gtv" in u.lower() else 0
-        is_alive = 1 if info["is_alive"] else 0
-        return (is_alive, is_4gtv, -info["delay"])
+        return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # --- 軌道 1：原始完整群組 ---
-    for unique_key, ch_data in channels.items():
-        g_name = ch_data["group"]
-        clean_name = ch_data["name"]
-        logo_str = ch_data["logo_str"]
-        tvg_id_str = ch_data["tvg_id_str"]
-        
-        sorted_urls = sorted(ch_data["urls"], key=url_sort_key, reverse=True)
-        
-        for idx, url in enumerate(sorted_urls, start=1):
-            is_alive_bool = alive_urls_map.get(url, {}).get("is_alive", False)
-            is_alive_label = "" if is_alive_bool else "[卡頓/失效]"
-            display_name = f"{clean_name}{is_alive_label} ({idx})"
-            new_info = f'#EXTINF:-1 tvg-name="{display_name}"{tvg_id_str}{logo_str} group-title="{g_name}",{display_name}'
-            output.append(new_info)
+    # 輸出完整版
+    for key, ch in channels.items():
+        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        for idx, url in enumerate(sorted_urls, 1):
+            is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
+            label = "" if is_alive else "[卡頓/失效]"
+            name = f"{ch['name']}{label} ({idx})"
+            output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
-            total_lines_written += 1
 
-    # --- 軌道 2：精選複製群組 ---
-    print("正在生成對應的『_精選』高可用複製群組...")
-    for unique_key, ch_data in channels.items():
-        g_name = ch_data["group"]
-        clean_name = ch_data["name"]
-        logo_str = ch_data["logo_str"]
-        tvg_id_str = ch_data["tvg_id_str"]
-        
-        lite_group_name = f"{g_name}_精選"
-        sorted_urls = sorted(ch_data["urls"], key=url_sort_key, reverse=True)
-        
-        best_url = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
-            
-        if best_url:
-            new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
-            output.append(new_info)
-            output.append(best_url)
-            total_lines_written += 1
+    # 輸出精選版
+    for key, ch in channels.items():
+        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        if best:
+            output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
+            output.append(best)
 
-    output_filename = "taiwan_live.m3u"
-    with open(output_filename, "w", encoding="utf-8") as f:
+    with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
-        
-    print(f"\n【TS 切片檢測完成！】（總耗時：{round(time.time() - start_test_time, 1)} 秒）")
-    print(f"📈 總共輸出線路共：{total_lines_written} 條。")
+
+    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒", flush=True)
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
