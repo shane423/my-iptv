@@ -1,7 +1,6 @@
 import re
 import requests
 import urllib3
-from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 
 # 關閉 SSL 憑證警告
@@ -23,12 +22,24 @@ EXCLUDE_CHANNELS = [
     "无线新闻", "無綫新聞", "ViuTV"
 ]
 
+# 4. 斷訊圖卡與無效服務器黑名單
+BAD_HOST_BLACKLIST = [
+    "epg.pw",
+    "interrupted",
+    "signal_interrupted"
+]
+
 def check_url_alive(url):
     """
-    【分類雙軌嚴格校準演算法】
-    1. API類 (4gtv / php)：放寬重定向，檢查狀態碼是否有效。
-    2. 一般 M3U8 串流：強制解析內文，必須含有 #EXTINF 或切片段落，剔除黑屏/無效殭屍源。
+    【極速強效防死鎖檢測】
+    1. 使用 (connect_timeout, read_timeout) 雙重硬性斷開機制，解決掛死問題。
+    2. 黑名單快速過濾。
+    3. 只抓取前端 2KB 資料即斷開，大幅降低資源消耗與執行時間。
     """
+    for bad_host in BAD_HOST_BLACKLIST:
+        if bad_host in url.lower():
+            return False
+
     headers = {
         'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18 (Android 11; Mobile)',
         'Accept': '*/*',
@@ -38,40 +49,46 @@ def check_url_alive(url):
     is_api_url = "4gtv" in url.lower() or "api.php" in url.lower() or ".php?" in url.lower()
     
     try:
+        # 連線超時: 2.0 秒，讀取超時: 2.5 秒 (關鍵防卡死設定)
+        timeout_config = (2.0, 2.5)
+        
         if is_api_url:
-            # 對於動態 API，允許重定向並確認回應正常
-            res = requests.get(url, headers=headers, timeout=4.0, stream=True, verify=False, allow_redirects=True)
+            res = requests.get(url, headers=headers, timeout=timeout_config, stream=True, verify=False, allow_redirects=True)
             if res.status_code in [200, 206, 301, 302]:
+                final_url = res.url.lower()
+                for bad_host in BAD_HOST_BLACKLIST:
+                    if bad_host in final_url:
+                        return False
                 return True
             return False
 
-        # 一般 M3U8 / TS 串流檔
-        res = requests.get(url, headers=headers, timeout=3.5, verify=False, allow_redirects=True)
+        # 一般 M3U8 串流檔
+        res = requests.get(url, headers=headers, timeout=timeout_config, stream=True, verify=False, allow_redirects=True)
         if res.status_code not in [200, 206]:
             return False
 
-        # 檢驗 M3U8 播放清單內文，確保有實際影片切片資訊
-        content_text = res.text
+        # 僅讀取前 2KB 內容，避免下載大檔案拖慢速度
+        chunk = next(res.iter_content(chunk_size=2048), b"").decode('utf-8', errors='ignore')
+        
+        for bad_host in BAD_HOST_BLACKLIST:
+            if bad_host in chunk.lower():
+                return False
+
         if ".m3u8" in url.lower():
-            # 必須包含 M3U 標籤且含有影片切片標示
-            if "#EXTM3U" in content_text and ("#EXTINF" in content_text or ".ts" in content_text or "http" in content_text):
+            if "#EXTM3U" in chunk or "#EXTINF" in chunk or ".ts" in chunk or "http" in chunk:
                 return True
             return False
             
-        # 若為直接播放檔 (MP4 / TS)
-        if len(res.content) > 1024:
-            return True
+        return len(chunk) > 0
 
     except BaseException:
         return False
-
-    return False
 
 def clean_filter_smart_merge():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(ORIGINAL_URL, headers=headers, timeout=30)
+        response = requests.get(ORIGINAL_URL, headers=headers, timeout=15)
         response.encoding = 'utf-8' 
         if response.status_code != 200:
             print(f"錯誤：無法連線直播源，HTTP 狀態碼: {response.status_code}")
@@ -165,7 +182,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行 M3U8 內文特徵與 API 雙軌精準篩選...")
+    print("\n⚡ 正在進行極速並發探測 (預計 2-4 分鐘內完成)...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -174,7 +191,8 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    # 提升至 20 個並發線程加速處理
+    with ThreadPoolExecutor(max_workers=20) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
@@ -228,7 +246,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【精準檢測完成！已剔除空內容與黑屏殭屍源】")
+    print(f"\n【極速優化完成！已成功防範死鎖】")
     print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
