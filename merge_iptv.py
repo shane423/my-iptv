@@ -23,7 +23,7 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    最高安全等級的線上即時活網偵測（防禦所有雲端環境網路異常崩潰）
+    最高安全等級的線上即時活網偵測
     """
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -140,6 +140,7 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
+                    # 4GTV 依然在原始名單中靠前排列
                     if "4GTV" in line.upper() or "4GTV" in current_clean_name.upper():
                         channels[unique_key]["urls"].insert(0, line)
                     else:
@@ -154,7 +155,6 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 限制並發線程數為 10，避免 GitHub 雲端環境網路阻塞
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
@@ -163,9 +163,8 @@ def clean_filter_smart_merge():
     # 第三階段：重新組合輸出
     output = [extm3u_header]
     total_lines_written = 0
-    unique_channel_count = 0
     
-    # --- 軌道 1：原始完整群組（帶數字後綴） ---
+    # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -180,7 +179,7 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # --- 軌道 2：複製一份「_精簡」群組（只挑選唯一一條最速活網） ---
+    # --- 軌道 2：複製一份「_精簡」群組（💡全新升級：雙階段精準過濾邏輯） ---
     print("正在生成對應的『_精簡』複製群組頻道...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -192,17 +191,26 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
+        # 💡【階段 1】嚴格篩選：只看 4GTV 且「必須活著」的線路
         for url in urls:
-            if alive_urls_map.get(url, False):
+            if ("4GTV" in url.upper() or "4GTV" in clean_name.upper()) and alive_urls_map.get(url, False):
                 best_url = url
+                print(f"  -> [{clean_name}] 成功鎖定活著的 4GTV 優先線路！")
                 break
                 
-        # 💡【關鍵修正點】如果全部都失效了，抓取第一條網址字串，而不是將整個 urls 陣列塞進去
+        # 💡【階段 2】後備方案：如果前面沒有找到活著的 4GTV，才去找非 4GTV 且活著的線路
+        if not best_url:
+            for url in urls:
+                if alive_urls_map.get(url, False):
+                    best_url = url
+                    print(f"  -> [{clean_name}] 4GTV 失效，精準切換至其他活網備用線路。")
+                    break
+                    
+        # 【階段 3】極限保底：如果全網檢測全部都超時斷線，被迫拿名單第一條墊背，避免漏台
         if not best_url and urls:
             best_url = urls[0]
             
         if best_url:
-            unique_channel_count += 1
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
             output.append(new_info)
             output.append(best_url)
@@ -213,7 +221,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【雙軌精簡與活網偵測優化完成！】")
+    print(f"\n【雙軌精簡與核心優化完成！】")
     print(f"📈 總共輸出完整與精簡雙軌道線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
