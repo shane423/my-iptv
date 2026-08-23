@@ -62,6 +62,7 @@ def clean_filter_smart_merge():
     channels = {}
     current_group = None
     current_clean_name = None
+    current_raw_name = None
     extm3u_header = "#EXTM3U"
     excluded_count = 0
 
@@ -84,6 +85,7 @@ def clean_filter_smart_merge():
             if g_name not in TARGET_GROUPS:
                 current_group = None
                 current_clean_name = None
+                current_raw_name = None
                 continue
                 
             if g_name == "港澳台":
@@ -92,6 +94,7 @@ def clean_filter_smart_merge():
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
+                current_raw_name = raw_name
                 
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
@@ -112,6 +115,7 @@ def clean_filter_smart_merge():
                     excluded_count += 1
                     current_group = None
                     current_clean_name = None
+                    current_raw_name = None
                     continue
                 
                 logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
@@ -125,6 +129,7 @@ def clean_filter_smart_merge():
             else:
                 current_group = None
                 current_clean_name = None
+                current_raw_name = None
                 
         elif line.startswith("http"):
             if current_group and current_clean_name:
@@ -140,9 +145,16 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 4GTV 依然在原始名單中靠前排列
-                    if "4GTV" in line.upper() or "4GTV" in current_clean_name.upper():
+                    # 💡【終極優化點 1】全方位防禦比對：不論大小寫、不論在網址或頻道原名，只要有 4gtv 就絕對置頂排在最前面
+                    is_4gtv = (
+                        "4gtv" in line.lower() or 
+                        "4gtv" in current_clean_name.lower() or 
+                        (current_raw_name and "4gtv" in current_raw_name.lower())
+                    )
+                    
+                    if is_4gtv:
                         channels[unique_key]["urls"].insert(0, line)
+                        print(f"成功捕捉並置頂 4GTV 網址: {line}")
                     else:
                         channels[unique_key]["urls"].append(line)
 
@@ -179,7 +191,7 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # --- 軌道 2：複製一份「_精簡」群組（💡全新升級：雙階段精準過濾邏輯） ---
+    # --- 軌道 2：複製一份「_精簡」群組 ---
     print("正在生成對應的『_精簡』複製群組頻道...")
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -190,25 +202,33 @@ def clean_filter_smart_merge():
         
         lite_group_name = f"{g_name}_精簡"
         best_url = None
+        first_4gtv_url = None
         
-        # 💡【階段 1】嚴格篩選：只看 4GTV 且「必須活著」的線路
+        # 找出該頻道名單中的第一個 4GTV 網址，留作終極保底使用
         for url in urls:
-            if ("4GTV" in url.upper() or "4GTV" in clean_name.upper()) and alive_urls_map.get(url, False):
+            if "4gtv" in url.lower():
+                first_4gtv_url = url
+                break
+        
+        # 💡【階段 1】優先篩選：只看 4GTV 且「必須活著」的線路
+        for url in urls:
+            if "4gtv" in url.lower() and alive_urls_map.get(url, False):
                 best_url = url
-                print(f"  -> [{clean_name}] 成功鎖定活著的 4GTV 優先線路！")
                 break
                 
-        # 💡【階段 2】後備方案：如果前面沒有找到活著的 4GTV，才去找非 4GTV 且活著的線路
+        # 💡【階段 2】後備方案：如果沒有活著的 4GTV，找非 4GTV 且活著的普通線路
         if not best_url:
             for url in urls:
                 if alive_urls_map.get(url, False):
                     best_url = url
-                    print(f"  -> [{clean_name}] 4GTV 失效，精準切換至其他活網備用線路。")
                     break
                     
-        # 【階段 3】極限保底：如果全網檢測全部都超時斷線，被迫拿名單第一條墊背，避免漏台
-        if not best_url and urls:
-            best_url = urls[0]
+        # 💡【階段 3】核心策略修正：如果全網偵測都超時死光，保底「絕對優先丟 4GTV 網址」，而不是丟第一個有問題的普通網址
+        if not best_url:
+            if first_4gtv_url:
+                best_url = first_4gtv_url  # 優先拿 4GTV 做活網死光的墊背
+            elif urls:
+                best_url = urls  # 萬一連 4GTV 都沒有，才拿普通第一條
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
