@@ -24,9 +24,8 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【極限防禦型 - 串流即時快篩演算法 - 完美語法版】
-    1. 採用 BaseException 頂級安全鎖，杜絕任何網路底層或非預期錯誤引發的自動化崩潰
-    2. 3秒極速超時切斷，專殺握手緩慢、空包彈與播幾秒就卡死的免費垃圾源
+    【極限防禦型 - 串流即時快篩演算法】
+    採用 BaseException 頂級安全鎖，3秒極速超時切斷，專殺假活網與失效來源
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
@@ -34,17 +33,15 @@ def check_url_alive(url):
         'Connection': 'close'
     }
     
-    # 💡 第一道體檢：快速握手探測
+    # 快速握手探測
     try:
-        # stream=True 只建立握手不下載資料，逾時縮短至嚴苛的 3 秒
         with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
-            # 💡【語法徹底修復】不再使用容易被系統切斷的 'in' 列表，直接改用小於 500 的標準判定
             if response.status_code < 500:
                 return True
     except BaseException:
         return False
         
-    # 💡 第二道體檢：輕量化 HEAD 探測保底
+    # HEAD 探測保底
     try:
         response = requests.head(url, headers=headers, timeout=2, allow_redirects=True, verify=False)
         if response.status_code < 500:
@@ -152,7 +149,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時深度串流偵測，過濾無效、卡頓、播放卡死的來源...")
+    print("\n⚡ 正在進行線上即時深度串流偵測...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -201,13 +198,15 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
+        # 挑選通過快篩探測的第一個活網
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
+        # 💡【終極修復點】若全軍覆沒，強制抓取 urls[0]（第一條網址字串），絕不允許塞入整個 List 陣列
         if not best_url and urls:
-            best_url = urls
+            best_url = urls[0]
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
@@ -220,8 +219,8 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡與假活網、無效4GTV深度清洗完成！】")
-    print(f"📈 總共輸出完整與精簡雙軌道優質線路共：{total_lines_written} 條。")
+    print(f"\n【全球雙軌精簡優化與類型漏洞完全修復！】")
+    print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
