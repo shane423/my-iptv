@@ -55,7 +55,7 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
-            # 第一階段：主請求 (套用第二份程式碼的嚴格 1.5s/0.8s Timeout)
+            # 第一階段：主請求 (套用嚴格 1.5s/0.8s Timeout)
             timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
@@ -240,11 +240,10 @@ def clean_filter_smart_merge():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 1. 寫入「精選版」頻道
+    # 1. 寫入「精選版」頻道（群組保留 _精選 後綴，頻道名稱乾淨無標籤）
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         
-        # 【關鍵修復點】：若該頻道屬於 zbds 來源，無視 is_alive 條件強制匯入精選；一般頻道則必須 is_alive 為 True
         if ch.get("is_zbds", False):
             best = sorted_urls[0] if sorted_urls else None
         else:
@@ -255,13 +254,13 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
             output.append(best)
 
-    # 2. 寫入完整版頻道
+    # 2. 寫入「完整版」頻道（不論線路數量，統一加上 (1), (2), (3)... 序號）
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
             is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
             label = "" if is_alive else "[卡頓/失效]"
-            name = f"{ch['name']}{label} ({idx})" if len(sorted_urls) > 1 else f"{ch['name']}{label}"
+            name = f"{ch['name']}{label} ({idx})"
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
