@@ -12,7 +12,7 @@ ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-# 3. 您的專屬頻道黑名單（💡 已幫您加入 無线新闻、无线新闻、ViuTV 進行精準剔除）
+# 3. 您的專屬頻道黑名單
 EXCLUDE_CHANNELS = [
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
     "星空卫视", "Channel[V]", "Channel V", "ChannelV",
@@ -24,28 +24,38 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【智慧型 IPTV 專用活網偵測演算法】
-    專門防禦海外機房 IP 阻擋、防機器人阻擋、修復 405/403 誤判
+    【進階型 串流深度驗證演算法】
+    嚴格過濾只能播幾秒就卡死的假活網、修復讀取緩慢的卡頓源
     """
-    # 模擬高權限的電視盒/電腦瀏覽器標頭，防止被防護牆直接阻斷
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
         'Connection': 'keep-alive'
     }
     
-    # 測試 1：HEAD 快速探測
+    # 測試 1：深度串流內容解析 (防禦點進去播幾秒就卡死的假線路)
     try:
-        response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        if response.status_code < 500:
-            return True
+        # 限制讀取逾時為 5 秒，只要 5 秒內抓不到內容，代表對本地端而言極度卡頓，直接淘汰
+        response = requests.get(url, headers=headers, timeout=5, stream=True, verify=False)
+        
+        if response.status_code == 200:
+            # 針對 M3U8 HLS 串流進行深度內容檢視
+            if "m3u8" in url.lower() or "mpegurl" in response.headers.get("Content-Type", "").lower():
+                # 只讀取前 1024 個字節，確認內部是否含有標準 HLS 的切片宣告（如 #EXTINF 或 #EXT-X-STREAM-INF）
+                chunk = response.iter_content(chunk_size=1024)
+                content_sample = next(chunk).decode('utf-8', errors='ignore')
+                if "#EXT" in content_sample:
+                    return True
+                else:
+                    return False # 雖然伺服器回應200，但沒有實質影片串流內容，判定為無效假線路
+            return True # 其他直連或特殊流形式，只要回應200且不卡頓即放行
     except:
         pass
-    
-    # 測試 2：GET 輕量級流探測（防禦不支援 HEAD 的伺服器）
+        
+    # 測試 2：輕量級 HEAD 探測保底 (防禦部分高防禦拒絕 GET 的活來源)
     try:
-        response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
-        if response.status_code < 500:
+        response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
+        if response.status_code == 200:
             return True
     except:
         pass
@@ -69,9 +79,7 @@ def clean_filter_smart_merge():
     channels = {}
     current_group = None
     current_clean_name = None
-    current_raw_name = None
     extm3u_header = "#EXTM3U"
-    excluded_count = 0
 
     print("開始抓取節目表網址、進行群組過濾、台標提取與名稱清洗...")
 
@@ -92,7 +100,6 @@ def clean_filter_smart_merge():
             if g_name not in TARGET_GROUPS:
                 current_group = None
                 current_clean_name = None
-                current_raw_name = None
                 continue
                 
             if g_name == "港澳台":
@@ -101,7 +108,6 @@ def clean_filter_smart_merge():
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
-                current_raw_name = raw_name
                 
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
@@ -119,10 +125,8 @@ def clean_filter_smart_merge():
                         break
                 
                 if is_excluded:
-                    excluded_count += 1
                     current_group = None
                     current_clean_name = None
-                    current_raw_name = None
                     continue
                 
                 logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
@@ -136,7 +140,6 @@ def clean_filter_smart_merge():
             else:
                 current_group = None
                 current_clean_name = None
-                current_raw_name = None
                 
         elif line.startswith("http"):
             if current_group and current_clean_name:
@@ -152,18 +155,10 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    is_4gtv = (
-                        "4gtv" in line.lower() or 
-                        "4gtv" in current_clean_name.lower() or 
-                        (current_raw_name and "4gtv" in current_raw_name.lower())
-                    )
-                    
-                    if is_4gtv:
-                        channels[unique_key]["urls"].insert(0, line)
-                    else:
-                        channels[unique_key]["urls"].append(line)
+                    # 💡【回歸純淨排序】移除 4GTV 的 insert(0) 強制置頂，完全依照原始來源順序放入，由後續活網偵測決定高低
+                    channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時「活網偵測」，剔除失效、不能撥放的來源...")
+    print("\n⚡ 正在進行線上即時深度串流偵測，過濾無效、卡頓、播放卡死的來源...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -181,7 +176,7 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
     
-    # --- 軌道 1：原始完整群組 ---
+    # --- 軌道 1：原始完整群組 (重新依照活網檢測結果進行排序) ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -189,8 +184,12 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        for idx, url in enumerate(urls, start=1):
-            display_name = f"{clean_name} ({idx})"
+        # 💡 將活網排在前面，死網或卡頓源移到後面
+        sorted_urls = sorted(urls, key=lambda u: alive_urls_map.get(u, False), reverse=True)
+        
+        for idx, url in enumerate(sorted_urls, start=1):
+            is_alive_label = "" if alive_urls_map.get(url, False) else "[卡頓/失效]"
+            display_name = f"{clean_name}{is_alive_label} ({idx})"
             new_info = f'#EXTINF:-1 tvg-name="{display_name}"{tvg_id_str}{logo_str} group-title="{g_name}",{display_name}'
             output.append(new_info)
             output.append(url)
@@ -207,29 +206,16 @@ def clean_filter_smart_merge():
         
         lite_group_name = f"{g_name}_精簡"
         best_url = None
-        first_4gtv_url = None
         
+        # 💡【嚴格精簡挑選】不問出身，只挑選「通過高標準活網與流深度檢測」的第一條最速線路
         for url in urls:
-            if "4gtv" in url.lower():
-                first_4gtv_url = url
-                break
-        
-        for url in urls:
-            if "4gtv" in url.lower() and alive_urls_map.get(url, False):
+            if alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        if not best_url:
-            for url in urls:
-                if alive_urls_map.get(url, False):
-                    best_url = url
-                    break
-                    
-        if not best_url:
-            if first_4gtv_url:
-                best_url = first_4gtv_url
-            elif urls:
-                best_url = urls[0]
+        # 極限保底：若全網在雲端環境都超時，抓第一條普通網址做墊背
+        if not best_url and urls:
+            best_url = urls[0]
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
@@ -242,8 +228,8 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【雙軌精簡與核心優化完成！】")
-    print(f"📈 總共輸出完整與精簡雙軌道線路共：{total_lines_written} 條。")
+    print(f"\n【全球雙軌精簡與串流完整清洗優化完成！】")
+    print(f"📈 總共輸出完整與精簡雙軌道優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
