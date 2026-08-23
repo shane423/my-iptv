@@ -6,16 +6,24 @@ on:
     - cron: '0 21 * * *'
   workflow_dispatch:      # 保留手動點擊按鈕強制執行更新的功能
 
+# 強制賦予工作流最高層級的寫入與認證宣告
+permissions:
+  contents: write
+  volumes: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 簽出專案原始碼
+      # 1. 簽出專案原始碼（💡關鍵修正：明確注入 GITHUB_TOKEN 安全密鑰，解鎖寫入權限）
       - name: 簽出專案原始碼 (Checkout Repository)
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
-      # 2. 設定 Python 環境（已移除會導致崩潰的 cache 設定）
+      # 2. 設定 Python 環境
       - name: 設定 Python 環境 (Set up Python)
         uses: actions/setup-python@v5
         with:
@@ -32,11 +40,18 @@ jobs:
       - name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
         run: python merge_iptv.py
 
-      # 5. 提交並推送最新 M3U 直播源
-      - name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
+      # 5. 提交並推送最新 M3U 直播源（💡關鍵修正：使用標準安全驗證推送）
+      - name: 提交並推送最新 M3U 直富源 (Commit and Push changes)
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Action"
           git add taiwan_live.m3u
+          
           # 檢查是否有檔案變動，避免無變動時提交報錯中斷
-          git diff --quiet && git diff --staged --quiet || (git commit -m "自動同步：更新台灣雙軌活網精簡直播源 [$(date '+%Y-%m-%d %H:%M:%S')]" && git push)
+          if ! git diff --quiet && ! git diff --staged --quiet; then
+            git commit -m "自動同步：更新台灣雙軌活網精簡直播源 [$(date '+%Y-%m-%d %H:%M:%S')]"
+            # 使用明確的遠端認證推送，根治 exit code 128
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@://github.com{{ github.repository }}.git" HEAD:${{ github.ref_name }}
+          else
+            print "直播源無任何變動，跳過本次推送。"
+          fi
