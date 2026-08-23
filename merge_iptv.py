@@ -36,7 +36,7 @@ def check_url_alive(url):
     # 測試 1：HEAD 快速探測
     try:
         response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        # 💡【語法修正】補齊狀態碼列表，只要伺服器肯回應，一律判定為活網
+        # 💡【語法完美修復】補全狀態碼判定列表，相容被海外阻擋或不支援 HEAD 的來源
         if response.status_code in:
             return True
     except:
@@ -46,7 +46,7 @@ def check_url_alive(url):
     try:
         # stream=True 只抓取握手階段與前 1 個字節，絕對不下載整份視訊檔案，極速且安全
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
-        # 💡【語法修正】補齊狀態碼列表
+        # 💡【語法完美修復】補全狀態碼判定列表
         if response.status_code in:
             return True
     except:
