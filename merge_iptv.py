@@ -115,6 +115,7 @@ async def scan_all_urls(scan_targets):
 def clean_filter_smart_merge():
     channels = {}
     extm3u_header = "#EXTM3U"
+    item_counter = 0
 
     for src_url in SOURCES:
         print(f"正在下載直播源: {src_url} ...", flush=True)
@@ -147,7 +148,7 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                # 判定邏輯：若為 zbds 來源則只允許「儿童频道」與「电影频道」；其他來源按 TARGET_GROUPS
+                # 若為 zbds 來源則只允許「儿童频道」與「电影频道」；其他來源按 TARGET_GROUPS
                 if is_zbds:
                     if raw_g_name not in ZBDS_TARGET_GROUPS:
                         current_group = None
@@ -179,7 +180,13 @@ def clean_filter_smart_merge():
                     current_clean_name = clean_name
                     current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str}
             elif line.startswith("http") and current_group and current_clean_name:
-                key = f"{current_group}___{current_clean_name}"
+                item_counter += 1
+                # 對於 zbds 的內容不作頻道名合併，給予唯一流水號 Key，確保每個影片/頻道都會獨立呈現並進入精選
+                if is_zbds:
+                    key = f"{current_group}___{current_clean_name}___item{item_counter}"
+                else:
+                    key = f"{current_group}___{current_clean_name}"
+
                 if key not in channels:
                     channels[key] = {
                         "group": current_group, "name": current_clean_name,
