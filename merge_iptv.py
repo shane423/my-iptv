@@ -31,13 +31,16 @@ BAD_HOST_BLACKLIST = [
 
 def check_url_alive(url):
     """
-    【極速強效防死鎖檢測】
-    1. 使用 (connect_timeout, read_timeout) 雙重硬性斷開機制，解決掛死問題。
-    2. 黑名單快速過濾。
-    3. 只抓取前端 2KB 資料即斷開，大幅降低資源消耗與執行時間。
+    【4gtv 深度實體串流校驗演算法】
+    1. 黑名單比對：剔除已知斷訊圖卡伺服器。
+    2. API 追蹤驗證：對 4gtv API 強制跟隨重定向，並檢查 Header 與前段內文是否真有影片串流。
+    3. 一般 M3U8：進行輕量流存活測試，防止死鎖。
     """
+    url_lower = url.lower()
+
+    # 1. 黑名單直接攔截
     for bad_host in BAD_HOST_BLACKLIST:
-        if bad_host in url.lower():
+        if bad_host in url_lower:
             return False
 
     headers = {
@@ -45,44 +48,49 @@ def check_url_alive(url):
         'Accept': '*/*',
         'Connection': 'close'
     }
-    
-    is_api_url = "4gtv" in url.lower() or "api.php" in url.lower() or ".php?" in url.lower()
-    
-    try:
-        # 連線超時: 2.0 秒，讀取超時: 2.5 秒 (關鍵防卡死設定)
-        timeout_config = (2.0, 2.5)
-        
-        if is_api_url:
-            res = requests.get(url, headers=headers, timeout=timeout_config, stream=True, verify=False, allow_redirects=True)
-            if res.status_code in [200, 206, 301, 302]:
-                final_url = res.url.lower()
-                for bad_host in BAD_HOST_BLACKLIST:
-                    if bad_host in final_url:
-                        return False
-                return True
-            return False
 
-        # 一般 M3U8 串流檔
+    try:
+        # 硬性防卡死 Timeout (連線 2.5 秒, 讀取 3.0 秒)
+        timeout_config = (2.5, 3.0)
+        
+        # 追蹤轉址 (allow_redirects=True)，取得最終實體串流網址
         res = requests.get(url, headers=headers, timeout=timeout_config, stream=True, verify=False, allow_redirects=True)
+        
         if res.status_code not in [200, 206]:
             return False
 
-        # 僅讀取前 2KB 內容，避免下載大檔案拖慢速度
+        # 檢查轉址後的最終網址是否指向黑名單
+        final_url = res.url.lower()
+        for bad_host in BAD_HOST_BLACKLIST:
+            if bad_host in final_url:
+                return False
+
+        content_type = res.headers.get('Content-Type', '').lower()
+        
+        # 如果回傳的是 HTML 錯誤頁面（例如 404 Page, 伺服器崩潰頁面），認定為無效
+        if 'text/html' in content_type:
+            return False
+
+        # 讀取前 2048 位元組 (2KB)，檢查是否有 M3U8 標頭或 TS 串流內容
         chunk = next(res.iter_content(chunk_size=2048), b"").decode('utf-8', errors='ignore')
         
+        # 內文若包含斷訊關鍵字，排除
         for bad_host in BAD_HOST_BLACKLIST:
             if bad_host in chunk.lower():
                 return False
 
-        if ".m3u8" in url.lower():
-            if "#EXTM3U" in chunk or "#EXTINF" in chunk or ".ts" in chunk or "http" in chunk:
-                return True
-            return False
+        # 判斷是否為有效播放清單或串流
+        if "#EXTM3U" in chunk or "#EXTINF" in chunk or ".ts" in chunk or "mpegurl" in content_type:
+            return True
             
-        return len(chunk) > 0
+        # 若為直接傳輸的實體位元流
+        if len(chunk) > 500:
+            return True
 
     except BaseException:
         return False
+
+    return False
 
 def clean_filter_smart_merge():
     print("正在下載 CCSH/IPTV 原始直播源...")
@@ -182,7 +190,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行極速並發探測 (預計 2-4 分鐘內完成)...")
+    print("\n⚡ 正在進行 4gtv 深度實體串流校驗 (預計 2-4 分鐘完畢)...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -191,8 +199,8 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 提升至 20 個並發線程加速處理
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    # 使用 6 個並發線程，兼顧檢測速度與防風控
+    with ThreadPoolExecutor(max_workers=6) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
@@ -246,7 +254,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【極速優化完成！已成功防範死鎖】")
+    print(f"\n【4gtv 實體串流校驗完成！】已排除死的 4gtv API，僅保留能播的實體線路。")
     print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
