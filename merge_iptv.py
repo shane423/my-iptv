@@ -25,36 +25,45 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【高容錯 Android TV 擬真探測器】
-    徹底解決 4gtv API / 自建反代被 Python 誤殺問題：
-    1. 模擬完整 IPTV 播放器 Request Header
-    2. 支援 301/302 重定向與寬鬆超時設定
-    3. 自動備用 HEAD 探測，確保不因 CDN 風控防禦而誤判
+    【分類雙軌嚴格校準演算法】
+    1. API類 (4gtv / php)：放寬重定向，檢查狀態碼是否有效。
+    2. 一般 M3U8 串流：強制解析內文，必須含有 #EXTINF 或切片段落，剔除黑屏/無效殭屍源。
     """
-    # 模擬標準 VLC / Android TV 播放器的請求標頭
     headers = {
         'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18 (Android 11; Mobile)',
         'Accept': '*/*',
-        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Connection': 'keep-alive'
+        'Connection': 'close'
     }
     
-    # 針對動態 API 放寬連線超時與重定向限制
+    is_api_url = "4gtv" in url.lower() or "api.php" in url.lower() or ".php?" in url.lower()
+    
     try:
-        with requests.get(url, headers=headers, timeout=5.0, stream=True, verify=False, allow_redirects=True) as response:
-            # 只要 status_code 小於 400，或是特意擋爬蟲的 403 (但播放器能播)，都認定有效
-            if response.status_code < 400 or response.status_code == 403:
+        if is_api_url:
+            # 對於動態 API，允許重定向並確認回應正常
+            res = requests.get(url, headers=headers, timeout=4.0, stream=True, verify=False, allow_redirects=True)
+            if res.status_code in [200, 206, 301, 302]:
                 return True
-    except BaseException:
-        pass
+            return False
 
-    # 備用保底機制：採用 HEAD 請求測試
-    try:
-        response = requests.head(url, headers=headers, timeout=3.0, verify=False, allow_redirects=True)
-        if response.status_code < 400 or response.status_code == 403:
+        # 一般 M3U8 / TS 串流檔
+        res = requests.get(url, headers=headers, timeout=3.5, verify=False, allow_redirects=True)
+        if res.status_code not in [200, 206]:
+            return False
+
+        # 檢驗 M3U8 播放清單內文，確保有實際影片切片資訊
+        content_text = res.text
+        if ".m3u8" in url.lower():
+            # 必須包含 M3U 標籤且含有影片切片標示
+            if "#EXTM3U" in content_text and ("#EXTINF" in content_text or ".ts" in content_text or "http" in content_text):
+                return True
+            return False
+            
+        # 若為直接播放檔 (MP4 / TS)
+        if len(res.content) > 1024:
             return True
+
     except BaseException:
-        pass
+        return False
 
     return False
 
@@ -156,7 +165,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行高容錯低速擬真串流檢測 (防 API 防火牆誤殺)...")
+    print("\n⚡ 正在進行 M3U8 內文特徵與 API 雙軌精準篩選...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -165,8 +174,7 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 降低併發數至 3，防止觸發 API 頻率限制 (Rate Limit) 導致網址被鎖
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
@@ -220,8 +228,8 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化完成！以高容錯模式成功保留所有可用頻道】")
-    print(f"📈 總共輸出線路共：{total_lines_written} 條。")
+    print(f"\n【精準檢測完成！已剔除空內容與黑屏殭屍源】")
+    print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
