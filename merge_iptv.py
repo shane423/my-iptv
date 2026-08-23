@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
 # 2. 保留的 6 大分組群組
@@ -24,10 +24,10 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【終極 HLS 串流特徵深度驗證演算法 - 全方位安全防禦版】
-    1. 平等對待 4GTV 與一般源，徹底過濾死掉的 4GTV 與 7秒卡死垃圾源
+    【終極 HLS 串流特徵深度驗證演算法 - 流式讀取防崩潰安全鎖版】
+    1. 平等對待 4GTV 與一般源，過濾失效的 4GTV 與 7秒卡死垃圾源
     2. 深度下載切片層級（iter_content），4秒內抓不到實質 HLS 切片宣告一律淘汰
-    3. 💡【關鍵修復】使用安全 for 迴圈讀取 chunk，防止空包彈網站觸發 StopIteration 導致崩潰
+    3. 💡【終極修復】在 chunk 讀取內部注入 try-except，防止硬性中斷連線導致的 ChunkedEncodingError 崩潰
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
@@ -45,15 +45,18 @@ def check_url_alive(url):
             content_type = response.headers.get("Content-Type") or ""
             
             if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
-                # 強制讀取前 2048 字節。只能播幾秒就卡住的假線路，在切片握手階段就會卡住或回傳空資料
                 chunk_iterator = response.iter_content(chunk_size=2048)
-                
-                # 💡【全新防崩潰修正】改用安全的 for 迴圈抓取第一個區塊，若為空串流則安全放行不崩潰
                 content_sample = ""
-                for chunk in chunk_iterator:
-                    if chunk:
-                        content_sample = chunk.decode('utf-8', errors='ignore')
-                        break # 只要拿到第一個有效區塊就立刻跳出
+                
+                # 💡【全新全封閉安全防禦】在提取區塊時單獨加鎖，杜絕任何網路底層斷線崩潰的可能
+                try:
+                    for chunk in chunk_iterator:
+                        if chunk:
+                            content_sample = chunk.decode('utf-8', errors='ignore')
+                            break # 只要拿到第一個有效區塊就立刻跳出
+                except Exception as stream_err:
+                    print(f"串流讀取中斷，已安全略過: {url} -> {stream_err}")
+                    return False
                 
                 # 必須嚴格包含 HLS 的核心特徵宣告，才算通過健康檢查
                 if "#EXT" in content_sample:
