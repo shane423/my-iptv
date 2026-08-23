@@ -145,7 +145,7 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 💡【終極優化點 1】全方位防禦比對：不論大小寫、不論在網址或頻道原名，只要有 4gtv 就絕對置頂排在最前面
+                    # 全方位防禦比對：不論大小寫、不論在網址或頻道原名，只要有 4gtv 就絕對置頂排在最前面
                     is_4gtv = (
                         "4gtv" in line.lower() or 
                         "4gtv" in current_clean_name.lower() or 
@@ -154,7 +154,6 @@ def clean_filter_smart_merge():
                     
                     if is_4gtv:
                         channels[unique_key]["urls"].insert(0, line)
-                        print(f"成功捕捉並置頂 4GTV 網址: {line}")
                     else:
                         channels[unique_key]["urls"].append(line)
 
@@ -223,12 +222,12 @@ def clean_filter_smart_merge():
                     best_url = url
                     break
                     
-        # 💡【階段 3】核心策略修正：如果全網偵測都超時死光，保底「絕對優先丟 4GTV 網址」，而不是丟第一個有問題的普通網址
+        # 💡【階段 3】核心策略修正：如果全網偵測都死光，保底「絕對優先丟第一條 4GTV 網址字串」
         if not best_url:
             if first_4gtv_url:
                 best_url = first_4gtv_url  # 優先拿 4GTV 做活網死光的墊背
             elif urls:
-                best_url = urls  # 萬一連 4GTV 都沒有，才拿普通第一條
+                best_url = urls[0]  # 💡【關鍵修正】這裡改拿第一條網址字串，避免寫入 List 導致崩潰
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
