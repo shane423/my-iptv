@@ -42,19 +42,18 @@ session.headers.update({
 def check_url_alive(url):
     """
     深度流媒體驗證：
-    1. 針對 4gtv 線路進行無條件保底放行（視為存活且延遲為 0）
+    1. 4gtv 線路無條件保底放行（視為存活且延遲為 0）
     2. 抓取 M3U8 檔並解析 TS 切片網址
-    3. 下載實體 TS 切片，驗證是否具備影音數據流（長度 > 10KB）
-    4. 連續檢測切片，防止首片段讀取成功但後續卡死
+    3. 下載實體 TS 切片，驗證是否具備影音數據流（長度 > 1KB）
     """
-    # ⚡ [關鍵修改]：4gtv 線路無條件保底放行
+    # ⚡ 4gtv 線路無條件保底放行
     if "4gtv" in url.lower():
         return (True, 0.0)
 
     start_time = time.time()
     try:
-        # Step 1: 請求主 m3u8 檔 (允許追蹤轉向)
-        res = session.get(url, timeout=3.5, verify=False, allow_redirects=True)
+        # Step 1: 請求主 m3u8 檔 (放寬至 5.0 秒，避免網路波動誤判)
+        res = session.get(url, timeout=5.0, verify=False, allow_redirects=True)
         if res.status_code >= 400:
             return (False, 999)
         
@@ -75,7 +74,7 @@ def check_url_alive(url):
             # 若遇到 Master Playlist (嵌套 M3U8)，對第一個子 M3U8 再做一次解析
             first_target = ts_urls[0]
             if ".m3u8" in first_target.lower() or "mpegurl" in content_type:
-                sub_res = session.get(first_target, timeout=3.0, verify=False, allow_redirects=True)
+                sub_res = session.get(first_target, timeout=4.0, verify=False, allow_redirects=True)
                 if sub_res.status_code >= 400:
                     return (False, 999)
                 
@@ -89,22 +88,20 @@ def check_url_alive(url):
             if not ts_urls:
                 return (False, 999)
 
-            # Step 2: 隨機/依序驗證前 1~2 個 TS 切片檔，確保串流可持續播放
+            # Step 2: 驗證前 1~2 個 TS 切片檔 (放寬至 4.0 秒)
             valid_ts_count = 0
-            test_ts_targets = ts_urls[:2] # 測試前兩個切片
+            test_ts_targets = ts_urls[:2]
             
             for ts_url in test_ts_targets:
                 try:
-                    ts_res = session.get(ts_url, timeout=2.5, verify=False, stream=True, allow_redirects=True)
+                    ts_res = session.get(ts_url, timeout=4.0, verify=False, stream=True, allow_redirects=True)
                     if ts_res.status_code < 400:
-                        # 讀取切片前 10KB 數據
                         chunk = next(ts_res.iter_content(chunk_size=10240), None)
-                        if chunk and len(chunk) >= 1024:  # 數據量必須高於 1KB
+                        if chunk and len(chunk) >= 1024:
                             valid_ts_count += 1
                 except Exception:
                     continue
 
-            # 必須至少有 1 個切片驗證通過
             if valid_ts_count > 0:
                 elapsed = time.time() - start_time
                 return (True, elapsed)
@@ -213,12 +210,15 @@ def clean_filter_smart_merge():
                 if line not in channels[unique_key]["urls"]:
                     channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行 TS 切片級流媒體數據探測 (過濾黑屏/卡頓線路)...")
+    print("\n⚡ 正在進行 TS 切片級深度流媒體探測 (兼顧檢測準確度與 2-3 分鐘平穩耗時)...")
     
     all_urls_to_test = [url for ch_data in channels.values() for url in ch_data["urls"]]
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
+    start_test_time = time.time()
+    
+    # 使用 15 執行緒配合較寬鬆的逾時，確保高品質篩選
     with ThreadPoolExecutor(max_workers=15) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, (is_alive, delay) in zip(unique_urls_to_test, results):
@@ -231,7 +231,6 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         is_4gtv = 1 if "4gtv" in u.lower() else 0
         is_alive = 1 if info["is_alive"] else 0
-        # 排序權重：1. 是否存活 -> 2. 是否為 4gtv 線路 -> 3. 延遲 (低延遲優先)
         return (is_alive, is_4gtv, -info["delay"])
 
     # --- 軌道 1：原始完整群組 ---
@@ -263,7 +262,6 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精選"
         sorted_urls = sorted(ch_data["urls"], key=url_sort_key, reverse=True)
         
-        # 嚴格限制：只有真正存活且驗證通過（包含 4gtv 保底放行）的線路才會進入精選群組
         best_url = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best_url:
@@ -276,7 +274,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【TS 切片檢測完成！】")
+    print(f"\n【TS 切片檢測完成！】（總耗時：{round(time.time() - start_test_time, 1)} 秒）")
     print(f"📈 總共輸出線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
