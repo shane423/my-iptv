@@ -27,7 +27,7 @@ def check_url_alive(url):
     """
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
-    # 嘗試 1：HEAD 快速偵測（已修正語法漏洞）
+    # 嘗試 1：HEAD 快速偵測
     try:
         response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
         if response.status_code == 200:
@@ -35,7 +35,7 @@ def check_url_alive(url):
     except:
         pass
     
-    # 嘗試 2：GET 分段流偵測（已修正語法漏洞）
+    # 嘗試 2：GET 分段流偵測
     try:
         response = requests.get(url, headers=headers, timeout=3, stream=True, verify=False)
         if response.status_code == 200:
@@ -197,8 +197,9 @@ def clean_filter_smart_merge():
                 best_url = url
                 break
                 
+        # 💡【關鍵修正點】如果全部都失效了，抓取第一條網址字串，而不是將整個 urls 陣列塞進去
         if not best_url and urls:
-            best_url = urls
+            best_url = urls[0]
             
         if best_url:
             unique_channel_count += 1
