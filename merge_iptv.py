@@ -24,9 +24,27 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【進階深度探測】
-    不只檢查 HTTP 狀態碼，更進一步解析 m3u8 內容，確保含有真正的串流切片 (.ts / .m4s / 子清單)
+    【雙軌精準快篩演算法】
+    1. 針對 4gtv / API 轉址源：啟用跟隨轉址與瀏覽器 Header 放行
+    2. 針對一般 m3u8 串流：檢查內容是否包含真正的影片切片標籤 (.ts/.m4s)，剔除假活網
     """
+    # 軌道 A：4gtv 專屬綠色通道 (避免動態 API 轉址被誤判)
+    if "4gtv" in url.lower():
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': '*/*'
+            }
+            res = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
+            if res.status_code < 400:
+                return True
+            res_get = requests.get(url, headers=headers, timeout=4, stream=True, verify=False, allow_redirects=True)
+            if res_get.status_code < 400:
+                return True
+        except BaseException:
+            pass
+
+    # 軌道 B：一般 m3u8 串流深度內容檢測
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
@@ -34,20 +52,17 @@ def check_url_alive(url):
     }
 
     try:
-        # 下載前幾KB的內容進行文字分析
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False, allow_redirects=True)
-        if response.status_code == 200:
-            # 讀取 m3u8 前 2048 位元組 (足以判斷結構)
+        if response.status_code < 400:
             content = response.raw.read(2048).decode('utf-8', errors='ignore')
             
-            # 判斷是否為合格的 M3U8 檔案
+            # 若為 M3U8 格式，驗證是否有實際影片切片或子播放清單
             if "#EXTM3U" in content:
-                # 必須含有多碼率子鏈結，或是真正的影片切片標籤/副檔名
-                if any(k in content for k in [".ts", ".m4s", ".aac", "#EXT-X-STREAM-INF", "#EXTINF"]):
+                if any(k in content for k in [".ts", ".m4s", ".aac", "#EXT-X-STREAM-INF", "#EXTINF", "http"]):
                     return True
             else:
-                # 若回應非標準 M3U8，但 HTTP 狀態正常且有一定資料長度 (適用於直連流)
-                if len(content) > 100:
+                # 針對部分直連串流或非標準 m3u8 標籤進行保底判定
+                if len(content) > 50:
                     return True
     except BaseException:
         pass
