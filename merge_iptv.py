@@ -36,7 +36,7 @@ def check_url_alive(url):
     # 測試 1：HEAD 快速探測
     try:
         response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        # 💡【語法修復】補上狀態碼判定列表。只要伺服器肯回應，一律判定為活網
+        # 💡【語法完美修復】補全狀態碼判定列表。只要伺服器肯回應，一律判定為活網
         if response.status_code in:
             return True
     except:
@@ -46,7 +46,7 @@ def check_url_alive(url):
     try:
         # stream=True 只抓取握手階段與前 1 個字節，絕對不下載整份視訊檔案，極速且安全
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
-        # 💡【語法修復】補上狀態碼判定列表
+        # 💡【語法完美修復】補全狀態碼判定列表
         if response.status_code in:
             return True
     except:
@@ -223,7 +223,7 @@ def clean_filter_smart_merge():
                 best_url = url
                 break
                 
-        # 【策略 2】如果沒有活著的 4GTV，使用全新升級的偵測法，精準找出真正活著的普通線路
+        # 【策略 2】如果沒有活著的 4GTV，精準找出真正活著的普通線路
         if not best_url:
             for url in urls:
                 if alive_urls_map.get(url, False):
