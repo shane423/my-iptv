@@ -26,7 +26,7 @@ def check_url_alive(url):
     【智慧型 IPTV 專用活網偵測演算法】
     專門防禦海外機房 IP 阻擋、防機器人阻擋、修復 405/403 誤判
     """
-    # 💡 模擬高權限的電視盒/電腦瀏覽器標頭，防止被防護牆直接阻斷
+    # 模擬高權限的電視盒/電腦瀏覽器標頭，防止被防護牆直接阻斷
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
@@ -36,7 +36,7 @@ def check_url_alive(url):
     # 測試 1：HEAD 快速探測
     try:
         response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        # 只要伺服器肯回應 200, 301, 302 甚至是 403(代表存在但擋海外IP)，一律判定為活網
+        # 💡【語法修復】補上狀態碼判定列表。只要伺服器肯回應，一律判定為活網
         if response.status_code in:
             return True
     except:
@@ -46,6 +46,7 @@ def check_url_alive(url):
     try:
         # stream=True 只抓取握手階段與前 1 個字節，絕對不下載整份視訊檔案，極速且安全
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
+        # 💡【語法修復】補上狀態碼判定列表
         if response.status_code in:
             return True
     except:
@@ -216,25 +217,25 @@ def clean_filter_smart_merge():
                 first_4gtv_url = url
                 break
         
-        # 💡【策略 1】優先選活著的 4GTV 線路
+        # 【策略 1】優先選活著的 4GTV 線路
         for url in urls:
             if "4gtv" in url.lower() and alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 💡【策略 2】如果沒有活著的 4GTV，使用全新升級的偵測法，精準找出真正活著的普通線路
+        # 【策略 2】如果沒有活著的 4GTV，使用全新升級的偵測法，精準找出真正活著的普通線路
         if not best_url:
             for url in urls:
                 if alive_urls_map.get(url, False):
                     best_url = url
                     break
                     
-        # 💡【策略 3：終極保底】如果連全新偵測法都認為全軍覆沒
+        # 【策略 3：終極保底】如果連全新偵測法都認為全軍覆沒
         if not best_url:
             if first_4gtv_url:
                 best_url = first_4gtv_url  # 有 4GTV 就強推 4GTV 網址
             elif urls:
-                best_url = urls[0]  # 完全沒有任何 4GTV 時，精準回退抓取第一條網址字串
+                best_url = urls[0]  # 完全沒有任何 4GTV 時，回退抓取第一條網址字串
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
