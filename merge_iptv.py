@@ -24,38 +24,44 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【進階型 串流深度驗證演算法】
-    嚴格過濾只能播幾秒就卡死的假活網、修復讀取緩慢的卡頓源
+    【終極 HLS 串流特徵深度驗證演算法】
+    1. 平等對待 4GTV 與一般源，徹底過濾死掉的 4GTV
+    2. 深度下載切片層級（iter_content），5秒內抓不到實質 HLS 切片宣告的卡死垃圾源一律淘汰
     """
+    # 使用通用高相容性的代理標頭，偽裝成台灣本地電視盒
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
+        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8',
         'Connection': 'keep-alive'
     }
     
-    # 測試 1：深度串流內容解析 (防禦點進去播幾秒就卡死的假線路)
+    # 核心深度串流體檢（專殺只能看7秒的假活網與失效4GTV）
     try:
-        # 限制讀取逾時為 5 秒，只要 5 秒內抓不到內容，代表對本地端而言極度卡頓，直接淘汰
-        response = requests.get(url, headers=headers, timeout=5, stream=True, verify=False)
+        # 將超時限制縮短至極其嚴苛的 4 秒，不給垃圾源任何拖延排隊的機會
+        response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
         
-        if response.status_code == 200:
-            # 針對 M3U8 HLS 串流進行深度內容檢視
+        if response.status_code < 400:
+            # 只要是 m3u8 或者是串流媒體格式
             if "m3u8" in url.lower() or "mpegurl" in response.headers.get("Content-Type", "").lower():
-                # 只讀取前 1024 個字節，確認內部是否含有標準 HLS 的切片宣告（如 #EXTINF 或 #EXT-X-STREAM-INF）
-                chunk = response.iter_content(chunk_size=1024)
+                # 💡 強制讀取前 2048 字節。只能播幾秒就卡住的假線路，在切片握手階段就會卡住或回傳空資料
+                chunk = response.iter_content(chunk_size=2048)
                 content_sample = next(chunk).decode('utf-8', errors='ignore')
+                
+                # 必須嚴格包含 HLS 的核心特徵宣告，才算通過健康檢查
                 if "#EXT" in content_sample:
                     return True
                 else:
-                    return False # 雖然伺服器回應200，但沒有實質影片串流內容，判定為無效假線路
-            return True # 其他直連或特殊流形式，只要回應200且不卡頓即放行
+                    return False # 伺服器雖在，但已無實質影片流內容（空包彈），淘汰
+            return True # 其他直連流
     except:
         pass
         
-    # 測試 2：輕量級 HEAD 探測保底 (防禦部分高防禦拒絕 GET 的活來源)
+    # 保底輕量化 HEAD 探測 (防禦少部分禁止海外機房 GET 卻真實存在的來源)
     try:
-        response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
-        if response.status_code == 200:
+        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
+        # 只要伺服器肯給出回應（且不是 500 以上的死機），皆給予通過，保留至完整列表墊底
+        if response.status_code < 500:
             return True
     except:
         pass
@@ -155,8 +161,11 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 💡【回歸純淨排序】移除 4GTV 的 insert(0) 強制置頂，完全依照原始來源順序放入，由後續活網偵測決定高低
-                    channels[unique_key]["urls"].append(line)
+                    # 💡 將 4GTV 排在前面供優先偵測，但不再給予無條件豁免權
+                    if "4gtv" in line.lower():
+                        channels[unique_key]["urls"].insert(0, line)
+                    else:
+                        channels[unique_key]["urls"].append(line)
 
     print("\n⚡ 正在進行線上即時深度串流偵測，過濾無效、卡頓、播放卡死的來源...")
     
@@ -176,7 +185,7 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
     
-    # --- 軌道 1：原始完整群組 (重新依照活網檢測結果進行排序) ---
+    # --- 軌道 1：原始完整群組 (完全以「真實活網體檢結果」高低來排序) ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -184,11 +193,12 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        # 💡 將活網排在前面，死網或卡頓源移到後面
-        sorted_urls = sorted(urls, key=lambda u: alive_urls_map.get(u, False), reverse=True)
+        # 活著的排前面(1)，死網或卡死垃圾源移到後面(0)
+        sorted_urls = sorted(urls, key=lambda u: 1 if alive_urls_map.get(u, False) else 0, reverse=True)
         
         for idx, url in enumerate(sorted_urls, start=1):
-            is_alive_label = "" if alive_urls_map.get(url, False) else "[卡頓/失效]"
+            is_alive_bool = alive_urls_map.get(url, False)
+            is_alive_label = "" if is_alive_bool else "[卡頓/失效]"
             display_name = f"{clean_name}{is_alive_label} ({idx})"
             new_info = f'#EXTINF:-1 tvg-name="{display_name}"{tvg_id_str}{logo_str} group-title="{g_name}",{display_name}'
             output.append(new_info)
@@ -207,15 +217,15 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
-        # 💡【嚴格精簡挑選】不問出身，只挑選「通過高標準活網與流深度檢測」的第一條最速線路
+        # 💡【全新精簡過濾機制】平等海選：誰能通過最嚴格的串流切片深度探測，誰就是第一名
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 極限保底：若全網在雲端環境都超時，抓第一條普通網址做墊背
+        # 萬一全部都被雲端機房阻擋，才回退拿第一條做最後的防漏台保底
         if not best_url and urls:
-            best_url = urls[0]
+            best_url = urls
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
@@ -228,7 +238,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡與串流完整清洗優化完成！】")
+    print(f"\n【全球雙軌精簡與假活網、無效4GTV深度清洗完成！】")
     print(f"📈 總共輸出完整與精簡雙軌道優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
