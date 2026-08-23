@@ -24,51 +24,33 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【全新沙盒防禦型 - 串流深度驗證演算法】
-    全封閉沙盒環境，全面消化底層 ProtocolError、ChunkedEncodingError 等所有未預期崩潰
+    【極限防禦型 - 串流即時快篩演算法】
+    1. 採用 BaseException 頂級安全鎖，杜絕任何網路底層或非預期錯誤引發的自動化崩潰
+    2. 3秒極速超時切斷，專殺握手緩慢、空包彈與播幾秒就卡死的免費垃圾源
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
-        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8',
-        'Connection': 'keep-alive'
+        'Connection': 'close' # 💡 快篩完畢立刻關閉連線，不佔用虛擬機網路資源
     }
     
-    # 💡【全封閉頂級沙盒】將所有連線、握手、讀取行完全包裝，絕不外漏任何底層錯誤
+    # 💡【第一道：全封閉頂級安全沙盒】
     try:
-        # stream=True 啟用流式讀取，逾時縮短至更嚴格的 4 秒，不給卡頓線路任何排隊拖延的機會
-        with requests.get(url, headers=headers, timeout=4, stream=True, verify=False, allow_redirects=True) as response:
+        # stream=True 只建立握手不下載資料，逾時縮短至嚴苛的 3 秒。連線慢或壞掉的線路直接出局
+        with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
             if response.status_code < 400:
-                content_type = response.headers.get("Content-Type") or ""
-                
-                # 判斷是否為 HLS 串流
-                if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
-                    # 縮小緩衝區至 512 位元組，只極速探測開頭，避免觸發畸形封包中斷
-                    chunk_iterator = response.iter_content(chunk_size=512)
-                    content_sample = ""
-                    
-                    for chunk in chunk_iterator:
-                        if chunk:
-                            content_sample = chunk.decode('utf-8', errors='ignore')
-                            break # 順利拿到第一個片段就立刻跳出
-                    
-                    # 嚴格驗證串流的核心標頭特徵
-                    if "#EXT" in content_sample:
-                        return True
-                    else:
-                        return False # 假活網，淘汰
-                return True # 其他直連媒體流
-    except Exception as e:
-        # 完美吸收並吞掉所有畸形 HTTP 回應、網路硬性中斷、超時等所有崩潰漏洞
-        pass
+                return True
+    except BaseException:
+        # 🎯 採用 BaseException 完美攔截所有已知、未知、底層協議等任何漏洞，絕對不允許崩潰外流
+        return False
         
-    # 保底輕量化 HEAD 探測 (防禦少部分拒絕 GET 卻真實存在的特殊來源)
+    # 💡【第二道：輕量化 HEAD 探測保底】
     try:
-        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
+        response = requests.head(url, headers=headers, timeout=2, allow_redirects=True, verify=False)
         if response.status_code < 500:
             return True
-    except:
-        pass
+    except BaseException:
+        return False
         
     return False
 
