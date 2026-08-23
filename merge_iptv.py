@@ -15,7 +15,7 @@ SOURCES = [
     "https://live.zbds.top/tv/iptv4.m3u"
 ]
 
-# 原始 M3U 中要抓取的簡體群組
+# 其他來源要抓取的簡體群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"}
 
 # 映射至 Kodi 顯示的繁體群組名稱
@@ -28,16 +28,10 @@ GROUP_NAME_MAP = {
     "NewTV": "NewTV"
 }
 
-# 精選群組的頂部排序前綴（確保 Kodi 排序時排在最前面）
-SELECT_GROUP_SORT = {
-    "台灣": "01.台灣_精選",
-    "電影": "02.電影_精選",
-    "電視劇": "03.電視劇_精選",
-    "卡通": "04.卡通_精選",
-    "NewTV": "05.NewTV_精選"
-}
+# 精選群組的指定輸出順序
+ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV"]
 
-# 一般頻道過濾黑名單
+# 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -57,7 +51,6 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
-            # 限制每個請求最多 1.5 秒
             timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
@@ -100,13 +93,11 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    # 限制最大同時發送 40 個請求，既快又不會被對手伺服器擋
     sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
-        # 設定整體任務的硬性絕殺時間（例如 18 秒）
         try:
             results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
@@ -122,9 +113,10 @@ def clean_filter_smart_merge():
     channels = {}
     extm3u_header = "#EXTM3U"
 
-    # 依次下載並解析所有來源網址
     for src_url in SOURCES:
         print(f"正在下載直播源: {src_url} ...", flush=True)
+        is_zbds = "live.zbds.top" in src_url
+        
         try:
             response = requests.get(src_url, headers=HEADERS, timeout=10)
             response.encoding = 'utf-8'
@@ -134,7 +126,6 @@ def clean_filter_smart_merge():
             continue
 
         current_group = None
-        raw_g_name = None
         current_clean_name = None
         current_raw_info = {}
 
@@ -153,12 +144,10 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                # 判斷是否在要擷取的群組目標內（4gtv 線路直接放行）
-                if not is_4gtv and raw_g_name not in TARGET_GROUPS:
+                if not is_zbds and not is_4gtv and raw_g_name not in TARGET_GROUPS:
                     current_group = None
                     continue
 
-                # 將群組轉為 Kodi 顯示的繁體名稱（4gtv 強制歸類為「台灣」）
                 g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(raw_g_name, raw_g_name)
 
                 name_match = re.search(r',([^,]+)$', line)
@@ -167,11 +156,7 @@ def clean_filter_smart_merge():
                     clean_name = re.sub(r'[\-\s_#]+\d+$', '', raw_name)
                     clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name).strip() or raw_name
 
-                    # 只有來源為 zbds.top 且屬特定群組時不進行過濾，其餘來源一律執行過濾
-                    is_zbds = "live.zbds.top" in src_url
-                    skip_filter = is_zbds and (raw_g_name in {"电影频道", "儿童频道"})
-
-                    if not skip_filter:
+                    if not is_zbds:
                         if any(b in clean_name.upper() or b in raw_name.upper() for b in EXCLUDE_CHANNELS):
                             current_group = None
                             continue
@@ -206,11 +191,9 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
     start_time = time.time()
 
-    # 執行 AsyncIO 掃描
     scanned_results = asyncio.run(scan_all_urls(scan_targets))
     alive_urls_map.update(scanned_results)
 
-    # 保障機制：超時未測完的非 4gtv URL 預設保留為有效 (True)，防止頻道被誤刪
     for u in all_urls:
         if u not in alive_urls_map:
             alive_urls_map[u] = {"is_alive": True, "delay": 5.0}
@@ -220,17 +203,27 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 優先輸出「精選版」群組，並加上前綴數字，保證排在 Kodi 最頂端
-    for key, ch in channels.items():
+    # 排序核心邏輯：依照指定群組順序（台灣 -> 電影 -> 電視劇 -> 卡通 -> NewTV）
+    def channel_group_sort_key(item):
+        ch = item[1]
+        group = ch["group"]
+        if group in ORDERED_GROUPS:
+            return ORDERED_GROUPS.index(group)
+        return 999  # 未在指定順序中的其他群組擺最後面
+
+    sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
+
+    # 1. 優先寫入按順序排列的「精選版」頻道
+    for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
         if best:
-            group_display = SELECT_GROUP_SORT.get(ch["group"], f"00.{ch['group']}_精選")
+            group_display = f"{ch['group']}_精選"
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
             output.append(best)
 
-    # 輸出完整版群組
-    for key, ch in channels.items():
+    # 2. 寫入完整版頻道
+    for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
             is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
