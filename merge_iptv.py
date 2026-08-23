@@ -3,7 +3,7 @@ import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor
 
-# 關閉 SSL 憑證警告（防止部分網址憑證過期導致偵測崩潰）
+# 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
@@ -23,22 +23,30 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    最高安全等級的線上即時活網偵測
+    【智慧型 IPTV 專用活網偵測演算法】
+    專門防禦海外機房 IP 阻擋、防機器人阻擋、修復 405/403 誤判
     """
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    # 💡 模擬高權限的電視盒/電腦瀏覽器標頭，防止被防護牆直接阻斷
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Connection': 'keep-alive'
+    }
     
-    # 嘗試 1：HEAD 快速偵測
+    # 測試 1：HEAD 快速探測
     try:
-        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
-        if response.status_code == 200:
+        response = requests.head(url, headers=headers, timeout=4, allow_redirects=True, verify=False)
+        # 只要伺服器肯回應 200, 301, 302 甚至是 403(代表存在但擋海外IP)，一律判定為活網
+        if response.status_code in:
             return True
     except:
         pass
     
-    # 嘗試 2：GET 分段流偵測
+    # 測試 2：GET 輕量級流探測（防禦不支援 HEAD 的伺服器）
     try:
-        response = requests.get(url, headers=headers, timeout=3, stream=True, verify=False)
-        if response.status_code == 200:
+        # stream=True 只抓取握手階段與前 1 個字節，絕對不下載整份視訊檔案，極速且安全
+        response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
+        if response.status_code in:
             return True
     except:
         pass
@@ -145,7 +153,6 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 全方位防禦比對：不論大小寫、不論在網址或頻道原名，只要有 4gtv 就絕對置頂排在最前面
                     is_4gtv = (
                         "4gtv" in line.lower() or 
                         "4gtv" in current_clean_name.lower() or 
@@ -203,31 +210,31 @@ def clean_filter_smart_merge():
         best_url = None
         first_4gtv_url = None
         
-        # 找出該頻道名單中的第一個 4GTV 網址，留作終極保底使用
+        # 事先抓出名單中包含 4gtv 的第一個網址
         for url in urls:
             if "4gtv" in url.lower():
                 first_4gtv_url = url
                 break
         
-        # 💡【階段 1】優先篩選：只看 4GTV 且「必須活著」的線路
+        # 💡【策略 1】優先選活著的 4GTV 線路
         for url in urls:
             if "4gtv" in url.lower() and alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 💡【階段 2】後備方案：如果沒有活著的 4GTV，找非 4GTV 且活著的普通線路
+        # 💡【策略 2】如果沒有活著的 4GTV，使用全新升級的偵測法，精準找出真正活著的普通線路
         if not best_url:
             for url in urls:
                 if alive_urls_map.get(url, False):
                     best_url = url
                     break
                     
-        # 💡【階段 3】核心策略修正：如果全網偵測都死光，保底「絕對優先丟第一條 4GTV 網址字串」
+        # 💡【策略 3：終極保底】如果連全新偵測法都認為全軍覆沒
         if not best_url:
             if first_4gtv_url:
-                best_url = first_4gtv_url  # 優先拿 4GTV 做活網死光的墊背
+                best_url = first_4gtv_url  # 有 4GTV 就強推 4GTV 網址
             elif urls:
-                best_url = urls[0]  # 💡【關鍵修正】這裡改拿第一條網址字串，避免寫入 List 導致崩潰
+                best_url = urls[0]  # 完全沒有任何 4GTV 時，精準回退抓取第一條網址字串
             
         if best_url:
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
