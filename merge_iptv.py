@@ -23,6 +23,12 @@ GROUP_NAME_MAP = {
     "NewTV": "NewTV"
 }
 
+# Kodi 選單指定排序邏輯（精選排最前，再依指定類別排列）
+ORDER_PRIORITY = [
+    "台灣_精選", "電影_精選", "電視劇_精選", "卡通_精選", "NewTV_精選",
+    "台灣", "電影", "電視劇", "卡通", "NewTV"
+]
+
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -42,7 +48,6 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
-            # 限制每個請求最多 1.5 秒
             timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
@@ -85,13 +90,11 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    # 限制最大同時發送 40 個請求，既快又不會被對手伺服器擋
     sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
-        # 設定整體任務的硬性絕殺時間（例如 18 秒）
         try:
             results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
@@ -134,12 +137,10 @@ def clean_filter_smart_merge():
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
             
-            # 判斷是否在要擷取的群組目標內（4gtv 線路直接放行）
             if not is_4gtv and g_name not in TARGET_GROUPS:
                 current_group = None
                 continue
 
-            # 將群組轉為 Kodi 顯示的繁體名稱，若為 4gtv 線路則強制歸類為「台灣」
             g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(g_name, g_name)
 
             name_match = re.search(r',([^,]+)$', line)
@@ -182,37 +183,50 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
     start_time = time.time()
 
-    # 執行 AsyncIO 掃描
     scanned_results = asyncio.run(scan_all_urls(scan_targets))
     alive_urls_map.update(scanned_results)
 
-    # 保障機制：超時未測完的非 4gtv URL 預設保留為有效 (True)，防止頻道被誤刪
     for u in all_urls:
         if u not in alive_urls_map:
             alive_urls_map[u] = {"is_alive": True, "delay": 5.0}
 
-    output = [extm3u_header]
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 輸出完整版
+    # 1. 產生所有頻道的 M3U 紀錄
+    entries_by_group = {}
+
+    # 精選版條目
     for key, ch in channels.items():
+        group_name = f"{ch['group']}_精選"
+        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        if best:
+            item = (f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_name}",{ch["name"]}\n{best}')
+            entries_by_group.setdefault(group_name, []).append(item)
+
+    # 完整版條目
+    for key, ch in channels.items():
+        group_name = ch["group"]
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
             is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
             label = "" if is_alive else "[卡頓/失效]"
             name = f"{ch['name']}{label} ({idx})"
-            output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
-            output.append(url)
+            item = (f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_name}",{name}\n{url}')
+            entries_by_group.setdefault(group_name, []).append(item)
 
-    # 輸出精選版
-    for key, ch in channels.items():
-        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
-        if best:
-            output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}_精選",{ch["name"]}')
-            output.append(best)
+    # 2. 依照指定優先順序寫入檔頭與內容
+    output = [extm3u_header]
+    for g in ORDER_PRIORITY:
+        if g in entries_by_group:
+            output.extend(entries_by_group[g])
+
+    # 寫入剩餘未定義在 ORDER_PRIORITY 中的群組（如有）
+    for g, items in entries_by_group.items():
+        if g not in ORDER_PRIORITY:
+            output.extend(items)
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
