@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ⚡ 全域 Socket 超時放寬至 2.5 秒，避免把反應稍慢的優質頻道砍掉
-socket.setdefaulttimeout(2.5)
+# ⚡ 全域 Socket 超時放寬至 3.0 秒，確保海外/高延遲源有足夠時間完成 TCP 握手
+socket.setdefaulttimeout(3.0)
 
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 TARGET_GROUPS = {"港澳台", "電影", "電視劇", "綜藝頻道", "NewTV", "兒童頻道"}
@@ -30,53 +30,60 @@ HEADERS = {
 
 def check_url_alive(url):
     """
-    穩健型 M3U8 / 串流線路檢測 (自動釋放 Socket 資源與雙層 M3U8 解析)
+    高精度 M3U8 / 串流線路檢測 (防偽 200 HTML 頁面 + 支援嵌套 M3U8 解析)
     """
     start_time = time.time()
-    
     session = requests.Session()
     session.headers.update(HEADERS)
     session.verify = False
 
     try:
-        # Step 1: 取得首層 M3U8 / HTML / 串流檔
-        res = session.get(url, timeout=(1.5, 2.0), allow_redirects=True)
+        # Step 1: 抓取首層 M3U8 或串流數據
+        res = session.get(url, timeout=(2.0, 2.5), allow_redirects=True)
         if res.status_code >= 400:
             return url, False, 999
 
         content_type = res.headers.get('Content-Type', '').lower()
         text = res.text
 
+        # 如果回傳 HTML 網頁 (如 404/500 自訂錯誤頁面)，直接判定為無效
+        if "html" in content_type or "<html" in text.lower() or "<!doctype" in text.lower():
+            return url, False, 999
+
         # 如果是 M3U8 / Playlist 格式
-        if "#EXTM3U" in text or "mpegurl" in content_type or "application/x-mpegurl" in content_type:
+        if "#EXTM3U" in text or "mpegurl" in content_type:
             lines = [l.strip() for l in text.splitlines() if l.strip() and not l.startswith("#")]
             if not lines:
                 return url, False, 999
 
             first_target = urljoin(res.url, lines[0])
 
-            # 如果第一條又是 m3u8 (Master Playlist 情況)，進去再抓一層
+            # 處理 Master Playlist (雙層 M3U8)
             if ".m3u8" in first_target.lower() or "mpegurl" in first_target.lower():
-                sub_res = session.get(first_target, timeout=(1.2, 1.5), allow_redirects=True)
+                sub_res = session.get(first_target, timeout=(1.5, 2.0), allow_redirects=True)
                 if sub_res.status_code >= 400:
                     return url, False, 999
-                lines = [l.strip() for l in sub_res.text.splitlines() if l.strip() and not l.startswith("#")]
+                sub_text = sub_res.text
+                if "<html" in sub_text.lower():
+                    return url, False, 999
+                lines = [l.strip() for l in sub_text.splitlines() if l.strip() and not l.startswith("#")]
                 if not lines:
                     return url, False, 999
                 first_target = urljoin(sub_res.url, lines[0])
 
-            # Step 2: 實際測試驗證 TS / 數據片段 (使用 with 防止連線洩漏)
-            with session.get(first_target, timeout=(1.2, 1.8), stream=True, allow_redirects=True) as ts_res:
+            # Step 2: 驗證 TS 影音數據片段
+            with session.get(first_target, timeout=(1.5, 2.0), stream=True, allow_redirects=True) as ts_res:
                 if ts_res.status_code < 400:
-                    chunk = next(ts_res.iter_content(chunk_size=1024), None)
-                    if chunk and len(chunk) >= 256:
+                    chunk = next(ts_res.iter_content(chunk_size=2048), None)
+                    # 防偽驗證：數據量必須 >= 1024 且不能為 HTML 文字
+                    if chunk and len(chunk) >= 1024 and not chunk.startswith(b"<html") and not chunk.startswith(b"<!DOCTYPE"):
                         return url, True, time.time() - start_time
         else:
-            # 一般 Direct Stream (如 FLV/MP4/AAC 串流)
-            with session.get(url, timeout=(1.5, 2.0), stream=True, allow_redirects=True) as direct_res:
+            # 一般 Direct Stream (FLV/MP4/AAC)
+            with session.get(url, timeout=(2.0, 2.5), stream=True, allow_redirects=True) as direct_res:
                 if direct_res.status_code < 400:
-                    chunk = next(direct_res.iter_content(chunk_size=1024), None)
-                    if chunk and len(chunk) >= 256:
+                    chunk = next(direct_res.iter_content(chunk_size=2048), None)
+                    if chunk and len(chunk) >= 1024 and not chunk.startswith(b"<html"):
                         return url, True, time.time() - start_time
 
     except Exception:
@@ -158,7 +165,7 @@ def clean_filter_smart_merge():
 
     alive_urls_map = {}
     
-    # 4gtv 等免測線路直接預設可用
+    # 4gtv 直播源預設免測直接可用
     for u in all_urls:
         if "4gtv" in u.lower():
             alive_urls_map[u] = {"is_alive": True, "delay": 0.01}
@@ -166,13 +173,13 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if "4gtv" not in u.lower()]
     start_time = time.time()
 
-    # ⚡ GitHub Actions 環境優化：降低並發至 20 並加入 45 秒強制截斷，防止 CI/CD 卡死
-    executor = ThreadPoolExecutor(max_workers=20)
+    # ⚡ 使用 25 個工作執行緒並給予 70 秒時間，提升慢速頻道的通過率
+    executor = ThreadPoolExecutor(max_workers=25)
     futures = {executor.submit(check_url_alive, url): url for url in scan_targets}
 
-    done, pending = wait(futures.keys(), timeout=45.0)
+    done, pending = wait(futures.keys(), timeout=70.0)
 
-    # 處理順利完成的任務
+    # 已順利測試完畢的頻道
     for future in done:
         try:
             u, is_alive, delay = future.result()
@@ -180,15 +187,14 @@ def clean_filter_smart_merge():
         except Exception:
             pass
 
-    # 處理被強制截斷/逾時的任務：給予預設保護，確保不誤刪
+    # 超時未回應完畢的線路：設定為待定保護，排在真可用的線路之後，不輕易移除
     for future in pending:
         u = futures[future]
-        alive_urls_map[u] = {"is_alive": True, "delay": 2.5}
-
-    executor.shutdown(wait=False, cancel_futures=True)
+        alive_urls_map[u] = {"is_alive": True, "delay": 888.0}
 
     output = [extm3u_header]
     
+    # 排序邏輯：測試成功 > 4GTV > 延遲低
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (
@@ -197,7 +203,7 @@ def clean_filter_smart_merge():
             -info["delay"]
         )
 
-    # 1. 輸出完整版 (每個群組編號皆由 1 開始)
+    # 1. 輸出完整版 (每個群組編號獨立從 1 開始)
     full_group_counters = defaultdict(int)
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
@@ -213,7 +219,7 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{grp}",{name}')
             output.append(url)
 
-    # 2. 輸出精選版 (精選群組編號皆由 1 開始)
+    # 2. 輸出精選版 (精選群組編號獨立從 1 開始)
     select_group_counters = defaultdict(int)
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
@@ -235,3 +241,5 @@ def clean_filter_smart_merge():
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
+    # 強制安全離場，確保 GitHub Actions 步驟顯示綠色圓點完成
+    os._exit(0)
