@@ -31,7 +31,6 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
-            # 限制每個請求最多 1.5 秒
             timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
@@ -180,43 +179,25 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # --- 1. 輸出完整版 (分群組獨立編號) ---
-    group_counters = {}  # 紀錄每個群組目前的頻道計數器
-    
+    # --- 僅輸出精選版 (每個群組獨立由 1 開始連續編號) ---
+    group_counters = {}
+
     for key, ch in channels.items():
         grp = ch["group"]
         if grp not in group_counters:
             group_counters[grp] = 1
 
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        for idx, url in enumerate(sorted_urls, 1):
-            is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
-            label = "" if is_alive else "[卡頓/失效]"
-            name = f"{ch['name']}{label} ({idx})"
-            
-            # 加入 tvg-chno 屬性
-            chno_str = f' tvg-chno="{group_counters[grp]}"'
-            output.append(f'#EXTINF:-1{chno_str} tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{grp}",{name}')
-            output.append(url)
-            
-            group_counters[grp] += 1
-
-    # --- 2. 輸出精選版 (分群組獨立編號) ---
-    selected_group_counters = {}  # 紀錄精選版各群組計數器
-    
-    for key, ch in channels.items():
-        grp = f"{ch['group']}_精選"
-        if grp not in selected_group_counters:
-            selected_group_counters[grp] = 1
-
-        sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        # 抓取該頻道回應最快且存活的最佳線路
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        
         if best:
-            chno_str = f' tvg-chno="{selected_group_counters[grp]}"'
+            chno_str = f' tvg-chno="{group_counters[grp]}"'
             output.append(f'#EXTINF:-1{chno_str} tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{grp}",{ch["name"]}')
             output.append(best)
             
-            selected_group_counters[grp] += 1
+            # 成功寫入該頻道後，計數器遞增 1
+            group_counters[grp] += 1
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
