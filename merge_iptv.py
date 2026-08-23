@@ -1,13 +1,47 @@
 import re
 import requests
+from concurrent.futures import ThreadPoolExecutor
 
-# 1. 指向 CCSH/IPTV 專案最新的原始 M3U 直播源
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
-# 2. 精準保留的 6 大分組群組
+# 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
 
-def clean_and_merge_to_video_tracks():
+# 3. 您的專屬頻道黑名單（精準配對並剔除）
+EXCLUDE_CHANNELS = [
+    "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
+    "星空卫视", "Channel[V]", "Channel V", "ChannelV",
+    "TVBPearl", "TVB Pearl", "TVB明珠台",
+    "TVBPlus", "TVB Plus", "TVBJ2",
+    "TVB星河", "TVB翡翠台", "TVB翡翠"
+]
+
+def check_url_alive(url):
+    """
+    精準動態測試網址是否能正常連線播放
+    返回 True (可播放) 或 False (已死鏈/無法播放)
+    """
+    try:
+        # 使用 HEAD 請求快速偵測，超時設為 3 秒防止卡死
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True)
+        if response.status_code in:
+            return True
+    except:
+        pass
+    
+    # 備用偵測：部分伺服器不支援 HEAD，改用 GET 讀取前幾個字節
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=3, stream=True)
+        if response.status_code == 200:
+            return True
+    except:
+        pass
+    return False
+
+def clean_filter_smart_merge():
     print("正在下載 CCSH/IPTV 原始直播源...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -24,13 +58,19 @@ def clean_and_merge_to_video_tracks():
     channels = {}
     current_group = None
     current_clean_name = None
-    current_raw_name = None
+    extm3u_header = "#EXTM3U"
+    excluded_count = 0
 
-    print("開始針對原始 M3U 進行超精準名稱清洗...")
+    print("開始抓取節目表網址、進行群組過濾、台標提取與名稱清洗...")
 
     for line in lines:
         line = line.strip()
-        if not line or line.startswith("#EXTM3U"):
+        if not line:
+            continue
+            
+        if line.startswith("#EXTM3U"):
+            if 'x-tvg-url=' in line:
+                extm3u_header = line
             continue
             
         if line.startswith("#EXTINF"):
@@ -42,11 +82,13 @@ def clean_and_merge_to_video_tracks():
                 current_clean_name = None
                 continue
                 
+            if g_name == "港澳台":
+                g_name = "台灣"
+                
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
                 
-                # 強力清洗名稱雜質
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
                 clean_name = re.sub(r'[\s\(\（\[]+\d+[\s\)\營\]]+', '', clean_name)
@@ -55,10 +97,28 @@ def clean_and_merge_to_video_tracks():
                 
                 if not clean_name:
                     clean_name = raw_name
-                    
+                
+                # 黑名單剔除檢查
+                is_excluded = False
+                for black_name in EXCLUDE_CHANNELS:
+                    if (black_name.upper() in clean_name.upper()) or (black_name.upper() in raw_name.upper()):
+                        is_excluded = True
+                        break
+                
+                if is_excluded:
+                    excluded_count += 1
+                    current_group = None
+                    current_clean_name = None
+                    continue
+                
+                logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
+                tvg_id_match = re.search(r'tvg-id=["\']([^"\']+)["\']', line)
+                logo_str = f' tvg-logo="{logo_match.group(1)}"' if logo_match else ""
+                tvg_id_str = f' tvg-id="{tvg_id_match.group(1)}"' if tvg_id_match else ""
+                
                 current_group = g_name
                 current_clean_name = clean_name
-                current_raw_name = raw_name
+                current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str}
             else:
                 current_group = None
                 current_clean_name = None
@@ -71,59 +131,94 @@ def clean_and_merge_to_video_tracks():
                     channels[unique_key] = {
                         "group": current_group,
                         "name": current_clean_name,
+                        "logo_str": current_raw_info["logo_str"],
+                        "tvg_id_str": current_raw_info["tvg_id_str"],
                         "urls": []
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    if any(kw in current_raw_name.upper() for kw in ["藍光", "HD", "1080", "4K"]):
+                    # 💡 【核心變更】：優先將帶有 4gtv 的優質直播源、或高清線路插到陣列最前面
+                    if "4GTV" in line.upper() or "4GTV" in current_clean_name.upper():
                         channels[unique_key]["urls"].insert(0, line)
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    # 第三階段：使用 HLS 變流堆疊語法輸出，強迫解鎖 Kodi 影像串流選單
-    output = ["#EXTM3U"]
-    unique_channel_count = 0
+    print("\n⚡ 正在進行線上即時「活網偵測」，剔除失效、不能撥放的來源...")
     
+    # 收集所有需要被檢測的網址，使用執行緒池進行加速
+    all_urls_to_test = []
+    for unique_key, ch_data in channels.items():
+        all_urls_to_test.extend(ch_data["urls"])
+    
+    # 去重後進行檢測，節省重複測試時間
+    unique_urls_to_test = list(set(all_urls_to_test))
+    alive_urls_map = {}
+    
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        results = executor.map(check_url_alive, unique_urls_to_test)
+        for url, is_alive in zip(unique_urls_to_test, results):
+            alive_urls_map[url] = is_alive
+
+    # 第三階段：重新組合輸出 (第一部分：原始完整後綴分組；第二部分：複製一份精簡分組)
+    output = [extm3u_header]
+    total_lines_written = 0
+    
+    # 為了讓分組在 Kodi 裡排在一起，我們先吐出完整組，再吐出精簡組
+    # --- 軌道 1：原始完整群組（帶數字後綴） ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
+        logo_str = ch_data["logo_str"]
+        tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        if not urls:
-            continue
-            
-        unique_channel_count += 1
-        
-        # 1. 告訴 Kodi 這個頻道要啟用 adaptive 核心，並且它是一個畫質/線路變流清單
-        output.append(f'#EXTINF:-1 group-title="{g_name}" tvg-name="{clean_name}" tvg-id="{clean_name}",{clean_name}')
-        output.append('#KODIPROP:inputstream=inputstream.adaptive')
-        output.append('#KODIPROP:inputstream.adaptive.manifest_type=hls')
-        
-        # 2. 將所有網址用大寫的組合格式打包（Kodi 官方支援的多網址堆疊法）
-        # 格式：網址1|#EXT-X-STREAM-INF:BANDWIDTH=8000000,NAME=線路1|網址2|#EXT-X-STREAM-INF:BANDWIDTH=5000000,NAME=線路2
-        stack_parts = []
         for idx, url in enumerate(urls, start=1):
-            # 虛擬給予不同的頻寬(BANDWIDTH)與線路名稱(NAME)，欺騙 Kodi 這是不同的視訊軌
-            bandwidth = 10000000 - (idx * 1000000)
-            if bandwidth < 1000000:
-                bandwidth = 1000000
-            
-            if idx == 1:
-                stack_parts.append(f"{url}|#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},NAME=Line_{idx}")
-            else:
-                stack_parts.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bandwidth},NAME=Line_{idx}|{url}")
+            display_name = f"{clean_name} ({idx})"
+            new_info = f'#EXTINF:-1 tvg-name="{display_name}"{tvg_id_str}{logo_str} group-title="{g_name}",{display_name}'
+            output.append(new_info)
+            output.append(url)
+            total_lines_written += 1
+
+    # --- 軌道 2：複製一份「_精簡」群組（只挑選唯一一條最速活網） ---
+    print("正在生成對應的『_精簡』複製群組頻道...")
+    for unique_key, ch_data in channels.items():
+        g_name = ch_data["group"]
+        clean_name = ch_data["name"]
+        logo_str = ch_data["logo_str"]
+        tvg_id_str = ch_data["tvg_id_str"]
+        urls = ch_data["urls"]
         
-        # 用管道符號將變流宣告與網址黏成一整行
-        merged_stream_line = "|".join(stack_parts)
-        output.append(merged_stream_line)
+        # 定義精簡群組名稱，例如 "台灣_精簡"、"电影_精簡"
+        lite_group_name = f"{g_name}_精簡"
+        
+        best_url = None
+        # 依序尋找第一條經過網路測試「還活著、能播放」的網址
+        for url in urls:
+            if alive_urls_map.get(url, False):
+                best_url = url
+                break
+                
+        # 防呆：如果該頻道所有線路剛好都測不到（或伺服器擋偵測），則預設選取安排好的第一條線路
+        if not best_url and urls:
+            best_url = urls[0]
+            
+        if best_url:
+            # 精簡版頻道名稱完全乾淨無括號，且在該分組內僅此一行
+            new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
+            output.append(new_info)
+            output.append(best_url)
+            total_lines_written += 1
 
     # 寫入最終成品檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【Kodi 影像串流多軌格式 - 優化完成！】")
-    print(f"成功將重複線路封裝進背景！頻道主列表共：{unique_channel_count} 個獨立頻道。")
+    print(f"\n【雙軌精簡與活網偵測優化完成！】")
+    print(f"📡 節目表、台標與黑名單已全面完美對齊。")
+    print(f"🚀 成功為所有分組複製並生成了對應的「_精簡」群組！")
+    print(f"📈 總共輸出含有完整與精簡雙軌道的線路共：{total_lines_written} 條。")
+    print(f"請將產出的「{output_filename}」檔案以本地路徑（Local Path）重新匯入 Kodi 並『清除資料』刷新！")
 
 if __name__ == "__main__":
-    clean_and_merge_to_video_tracks()
+    clean_filter_smart_merge()
