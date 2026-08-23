@@ -24,7 +24,7 @@ HEADERS = {
 }
 
 def check_url_alive(url):
-    # ⚡ 1. 4gtv 一律直接判定為有效，0秒延遲
+    # 4gtv 一律直接判定成功
     if "4gtv" in url.lower():
         return url, True, 0.0
 
@@ -92,14 +92,12 @@ def clean_filter_smart_merge():
                 extm3u_header = line
             continue
         if line.startswith("#EXTINF"):
-            # 檢查下一行 URL 是否包含 4gtv
             next_url = lines[idx+1].strip() if idx + 1 < len(lines) else ""
             is_4gtv = "4gtv" in next_url.lower()
 
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
             
-            # ⚡ 2. 如果是 4gtv，跳過 TARGET_GROUPS 檢查；否則才過濾分類
             if not is_4gtv and g_name not in TARGET_GROUPS:
                 current_group = None
                 continue
@@ -139,11 +137,16 @@ def clean_filter_smart_merge():
     all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
     print(f"開始掃描 {len(all_urls)} 條線路...", flush=True)
 
+    # ⚡ 關鍵修復：預先將所有 4gtv 填寫為通過（is_alive: True），避免超時 break 導致未測到的 4gtv 被預設為 False！
     alive_urls_map = {}
+    for u in all_urls:
+        if "4gtv" in u.lower():
+            alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
+
     start_time = time.time()
 
     executor = ThreadPoolExecutor(max_workers=15)
-    futures = [executor.submit(check_url_alive, url) for url in all_urls]
+    futures = [executor.submit(check_url_alive, url) for url in all_urls if "4gtv" not in url.lower()]
     
     for future in as_completed(futures):
         if time.time() - start_time > 30:
@@ -160,7 +163,7 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 1. 完整版
+    # 輸出完整版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
@@ -170,7 +173,7 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
-    # 2. 精選版
+    # 輸出精選版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
@@ -182,8 +185,6 @@ def clean_filter_smart_merge():
         f.write("\n".join(output))
 
     print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒，直接退出進程。", flush=True)
-    
-    # ⚡ 強制立即殺掉進程，避免死鎖卡在 Actions
     os._exit(0)
 
 if __name__ == "__main__":
