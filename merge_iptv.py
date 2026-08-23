@@ -1,6 +1,10 @@
 import re
 import requests
+import urllib3
 from concurrent.futures import ThreadPoolExecutor
+
+# 關閉 SSL 憑證警告（防止部分網址憑證過期導致偵測崩潰）
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
@@ -19,26 +23,26 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    精準動態測試網址是否能正常連線播放
-    返回 True (可播放) 或 False (已死鏈/無法播放)
+    最高安全等級的線上即時活網偵測（防禦所有雲端環境網路異常崩潰）
     """
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    # 嘗試 1：HEAD 快速偵測
     try:
-        # 使用 HEAD 請求快速偵測，超時設為 3 秒防止卡死
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True)
+        response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
         if response.status_code in:
             return True
     except:
         pass
     
-    # 備用偵測：部分伺服器不支援 HEAD，改用 GET 讀取前幾個字節
+    # 嘗試 2：GET 分段流偵測（防止部分伺服器封鎖 HEAD 請求）
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=3, stream=True)
-        if response.status_code == 200:
+        response = requests.get(url, headers=headers, timeout=3, stream=True, verify=False)
+        if response.status_code in:
             return True
     except:
         pass
+        
     return False
 
 def clean_filter_smart_merge():
@@ -98,7 +102,6 @@ def clean_filter_smart_merge():
                 if not clean_name:
                     clean_name = raw_name
                 
-                # 黑名單剔除檢查
                 is_excluded = False
                 for black_name in EXCLUDE_CHANNELS:
                     if (black_name.upper() in clean_name.upper()) or (black_name.upper() in raw_name.upper()):
@@ -137,7 +140,6 @@ def clean_filter_smart_merge():
                     }
                 
                 if line not in channels[unique_key]["urls"]:
-                    # 💡 【核心變更】：優先將帶有 4gtv 的優質直播源、或高清線路插到陣列最前面
                     if "4GTV" in line.upper() or "4GTV" in current_clean_name.upper():
                         channels[unique_key]["urls"].insert(0, line)
                     else:
@@ -145,25 +147,24 @@ def clean_filter_smart_merge():
 
     print("\n⚡ 正在進行線上即時「活網偵測」，剔除失效、不能撥放的來源...")
     
-    # 收集所有需要被檢測的網址，使用執行緒池進行加速
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
         all_urls_to_test.extend(ch_data["urls"])
     
-    # 去重後進行檢測，節省重複測試時間
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    # 限制並發線程數為 10，避免 GitHub 雲端環境因瞬時連線過高被網路安全策略封鎖
+    with ThreadPoolExecutor(max_workers=10) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
 
-    # 第三階段：重新組合輸出 (第一部分：原始完整後綴分組；第二部分：複製一份精簡分組)
+    # 第三階段：重新組合輸出
     output = [extm3u_header]
     total_lines_written = 0
+    unique_channel_count = 0
     
-    # 為了讓分組在 Kodi 裡排在一起，我們先吐出完整組，再吐出精簡組
     # --- 軌道 1：原始完整群組（帶數字後綴） ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
@@ -188,22 +189,19 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        # 定義精簡群組名稱，例如 "台灣_精簡"、"电影_精簡"
         lite_group_name = f"{g_name}_精簡"
-        
         best_url = None
-        # 依序尋找第一條經過網路測試「還活著、能播放」的網址
+        
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 防呆：如果該頻道所有線路剛好都測不到（或伺服器擋偵測），則預設選取安排好的第一條線路
         if not best_url and urls:
             best_url = urls[0]
             
         if best_url:
-            # 精簡版頻道名稱完全乾淨無括號，且在該分組內僅此一行
+            unique_channel_count += 1
             new_info = f'#EXTINF:-1 tvg-name="{clean_name}"{tvg_id_str}{logo_str} group-title="{lite_group_name}",{clean_name}'
             output.append(new_info)
             output.append(best_url)
@@ -215,10 +213,7 @@ def clean_filter_smart_merge():
         f.write("\n".join(output))
         
     print(f"\n【雙軌精簡與活網偵測優化完成！】")
-    print(f"📡 節目表、台標與黑名單已全面完美對齊。")
-    print(f"🚀 成功為所有分組複製並生成了對應的「_精簡」群組！")
-    print(f"📈 總共輸出含有完整與精簡雙軌道的線路共：{total_lines_written} 條。")
-    print(f"請將產出的「{output_filename}」檔案以本地路徑（Local Path）重新匯入 Kodi 並『清除資料』刷新！")
+    print(f"📈 總共輸出完整與精簡雙軌道線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
