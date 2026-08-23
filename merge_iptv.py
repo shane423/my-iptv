@@ -25,65 +25,37 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【智慧雙軌檢測 - 相容 4gtv API 與 TS 實體防卡頓】
-    1. 對於 4gtv_api.php 等動態 API：允許 301/302 重定向，驗證其 HTTP 狀態碼。
-    2. 對於一般 M3U8/TS 串流：深度提取 TS 切片並測試 1.5 秒 64KB 傳輸速率。
+    【高容錯 Android TV 擬真探測器】
+    徹底解決 4gtv API / 自建反代被 Python 誤殺問題：
+    1. 模擬完整 IPTV 播放器 Request Header
+    2. 支援 301/302 重定向與寬鬆超時設定
+    3. 自動備用 HEAD 探測，確保不因 CDN 風控防禦而誤判
     """
+    # 模擬標準 VLC / Android TV 播放器的請求標頭
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18 (Android 11; Mobile)',
         'Accept': '*/*',
-        'Connection': 'close'
+        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Connection': 'keep-alive'
     }
     
-    # 針對 4gtv 動態 API 進行特殊保護判斷
-    is_api_url = "4gtv" in url.lower() or "api.php" in url.lower() or ".php?" in url.lower()
-    
+    # 針對動態 API 放寬連線超時與重定向限制
     try:
-        if is_api_url:
-            # 特殊動態 API 檢測：給予 4 秒超時，允許重定向
-            res = requests.get(url, headers=headers, timeout=4.0, stream=True, verify=False, allow_redirects=True)
-            if res.status_code in [200, 206, 301, 302]:
+        with requests.get(url, headers=headers, timeout=5.0, stream=True, verify=False, allow_redirects=True) as response:
+            # 只要 status_code 小於 400，或是特意擋爬蟲的 403 (但播放器能播)，都認定有效
+            if response.status_code < 400 or response.status_code == 403:
                 return True
-            return False
-
-        # 一般串流檢測：第一階段獲取 M3U8 清單
-        res = requests.get(url, headers=headers, timeout=2.5, stream=True, verify=False, allow_redirects=True)
-        if res.status_code not in [200, 206]:
-            return False
-            
-        content_type = res.headers.get('Content-Type', '').lower()
-        if 'text/html' in content_type:
-            return False
-
-        target_ts_url = None
-        if ".m3u8" in url.lower() or "mpegurl" in content_type or "apple.mime" in content_type:
-            lines = res.text.splitlines()
-            for line in lines:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    target_ts_url = urljoin(url, line)
-                    break
-        else:
-            target_ts_url = url
-
-        if not target_ts_url:
-            return False
-
-        # 第二階段：一般串流的 TS 切片防卡頓下載測試
-        with requests.get(target_ts_url, headers=headers, timeout=2.0, stream=True, verify=False) as ts_res:
-            if ts_res.status_code not in [200, 206]:
-                return False
-                
-            downloaded = 0
-            for chunk in ts_res.iter_content(chunk_size=16384):
-                if chunk:
-                    downloaded += len(chunk)
-                    if downloaded >= 65536:
-                        return True
-                        
     except BaseException:
-        return False
-        
+        pass
+
+    # 備用保底機制：採用 HEAD 請求測試
+    try:
+        response = requests.head(url, headers=headers, timeout=3.0, verify=False, allow_redirects=True)
+        if response.status_code < 400 or response.status_code == 403:
+            return True
+    except BaseException:
+        pass
+
     return False
 
 def clean_filter_smart_merge():
@@ -184,7 +156,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行 4gtv API 與實體串流狀態測試 (請稍候)...")
+    print("\n⚡ 正在進行高容錯低速擬真串流檢測 (防 API 防火牆誤殺)...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -193,7 +165,8 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    # 降低併發數至 3，防止觸發 API 頻率限制 (Rate Limit) 導致網址被鎖
+    with ThreadPoolExecutor(max_workers=3) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
@@ -247,8 +220,8 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化完成！4gtv API 源已順利保留】")
-    print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
+    print(f"\n【全球雙軌精簡優化完成！以高容錯模式成功保留所有可用頻道】")
+    print(f"📈 總共輸出線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
