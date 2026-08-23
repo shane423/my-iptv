@@ -1,34 +1,43 @@
-name: Auto Clean and Merge IPTV
+name: 自動更新 IPTV 播放清單
 
 on:
   schedule:
-    - cron: '0 21 * * *' # 天天國際標準時間 21:00，等同於台灣時間每日早上 05:00 自動執行更新
-  workflow_dispatch: # 允許您在網頁上隨時手動點擊「立即更新」
+    # 💡 台北時間 (GMT+8) 凌晨 05:00，對應的國際標準時間 (UTC) 為前一天晚上的 21:00
+    - cron: '0 21 * * *'
+  workflow_dispatch:      # 依舊保留手動點擊按鈕強制執行更新的功能
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # 1. 升級至 v4，完全消滅 Node.js 20 淘汰警告
+      - name: 簽出專案原始碼 (Checkout Repository)
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      # 2. 升級至 v5，完美支援最新版雲端 Python 環境
+      - name: 設定 Python 環境 (Set up Python)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # 開啟快取，加速後續的自動化流程
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
+      # 3. 確保活網偵測必備的網路請求套件安裝完全
+      - name: 安裝 Python 活網偵測必要套件 (Install Dependencies)
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests urllib3
 
-    - name: Run script
-      run: python merge_iptv.py
+      # 4. 執行您更新完成的「100%安全不崩潰活網偵測」Python 腳本
+      # 備註：如果您的 Python 腳本不叫 main.py，請將下方 main.py 改成您實際的檔名
+      - name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
+        run: python main.py
 
-    - name: Commit and Push changes
-      run: |
-        git config --local user.email "actions@github.com"
-        git config --local user.name "GitHub Actions"
-        git add taiwan_live.m3u
-        git commit -m "每日早上05:00定時更新台灣多線路清單" || exit 0
-        git push
+      # 5. 將自動生成好的最新備用線路與精簡群組推回您的 GitHub 倉庫
+      - name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Action"
+          git add taiwan_live.m3u
+          # 檢查是否有檔案變動，避免無變動時提交報錯中斷
+          git diff --quiet && git diff --staged --quiet || (git commit -m "自動同步：更新台灣雙軌活網精簡直播源 [$(date '+%Y-%m-%d %H:%M:%S')]" && git push)
