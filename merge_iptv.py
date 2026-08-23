@@ -24,10 +24,10 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【終極 HLS 串流特徵深度驗證演算法 - 崩潰安全防禦版】
+    【終極 HLS 串流特徵深度驗證演算法 - 全方位安全防禦版】
     1. 平等對待 4GTV 與一般源，徹底過濾死掉的 4GTV 與 7秒卡死垃圾源
     2. 深度下載切片層級（iter_content），4秒內抓不到實質 HLS 切片宣告一律淘汰
-    3. 💡【關鍵修復】防止部分伺服器無 Content-Type 標頭導致的 lower() 崩潰漏洞
+    3. 💡【關鍵修復】使用安全 for 迴圈讀取 chunk，防止空包彈網站觸發 StopIteration 導致崩潰
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
@@ -42,13 +42,18 @@ def check_url_alive(url):
         response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
         
         if response.status_code < 400:
-            # 💡【空值安全防禦】確保獲取的內容類型絕對是字串，即使為 None 也能安全轉換成空字串
             content_type = response.headers.get("Content-Type") or ""
             
             if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
                 # 強制讀取前 2048 字節。只能播幾秒就卡住的假線路，在切片握手階段就會卡住或回傳空資料
-                chunk = response.iter_content(chunk_size=2048)
-                content_sample = next(chunk).decode('utf-8', errors='ignore')
+                chunk_iterator = response.iter_content(chunk_size=2048)
+                
+                # 💡【全新防崩潰修正】改用安全的 for 迴圈抓取第一個區塊，若為空串流則安全放行不崩潰
+                content_sample = ""
+                for chunk in chunk_iterator:
+                    if chunk:
+                        content_sample = chunk.decode('utf-8', errors='ignore')
+                        break # 只要拿到第一個有效區塊就立刻跳出
                 
                 # 必須嚴格包含 HLS 的核心特徵宣告，才算通過健康檢查
                 if "#EXT" in content_sample:
@@ -118,7 +123,7 @@ def clean_filter_smart_merge():
                 
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
-                clean_name = re.sub(r'[\s\(\（\[]+\d+[\s\)\營\]]+', '', clean_name)
+                clean_name = re.sub(r'[\s\(\停\（\[]+\d+[\s\)\營\]]+', '', clean_name)
                 clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
                 clean_name = clean_name.strip()
                 
@@ -185,7 +190,7 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
     
-    # --- 軌道 1：原始完整群組 (完全以「真實活網體檢結果」高低來排序) ---
+    # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
         g_name = ch_data["group"]
         clean_name = ch_data["name"]
@@ -193,7 +198,6 @@ def clean_filter_smart_merge():
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
         
-        # 活著的排前面(1)，死網或卡死垃圾源移到後面(0)
         sorted_urls = sorted(urls, key=lambda u: 1 if alive_urls_map.get(u, False) else 0, reverse=True)
         
         for idx, url in enumerate(sorted_urls, start=1):
@@ -217,13 +221,11 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
-        # 精平海選：誰能通過最嚴格的串流切片深度探測，誰就是第一名
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
                 break
                 
-        # 萬一全部都被雲端機房阻擋，才回退拿第一條做最後的防漏台保底
         if not best_url and urls:
             best_url = urls
             
