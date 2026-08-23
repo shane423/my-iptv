@@ -1,2 +1,0 @@
-Bash
-pip install aiohttp requests
