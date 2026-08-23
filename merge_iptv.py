@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直源
+# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
 
 # 2. 保留的 6 大分組群組
@@ -24,10 +24,8 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【終極 HLS 串流特徵深度驗證演算法 - 流式讀取防崩潰安全鎖版】
-    1. 平等對待 4GTV 與一般源，過濾失效的 4GTV 與 7秒卡死垃圾源
-    2. 深度下載切片層級（iter_content），4秒內抓不到實質 HLS 切片宣告一律淘汰
-    3. 💡【終極修復】在 chunk 讀取內部注入 try-except，防止硬性中斷連線導致的 ChunkedEncodingError 崩潰
+    【全新沙盒防禦型 - 串流深度驗證演算法】
+    全封閉沙盒環境，全面消化底層 ProtocolError、ChunkedEncodingError 等所有未預期崩潰
     """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
@@ -36,38 +34,35 @@ def check_url_alive(url):
         'Connection': 'keep-alive'
     }
     
-    # 核心深度串流體檢
+    # 💡【全封閉頂級沙盒】將所有連線、握手、讀取行完全包裝，絕不外漏任何底層錯誤
     try:
-        # 將超時限制縮短至極其嚴苛的 4 秒，快速淘汰排隊垃圾源
-        response = requests.get(url, headers=headers, timeout=4, stream=True, verify=False)
-        
-        if response.status_code < 400:
-            content_type = response.headers.get("Content-Type") or ""
-            
-            if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
-                chunk_iterator = response.iter_content(chunk_size=2048)
-                content_sample = ""
+        # stream=True 啟用流式讀取，逾時縮短至更嚴格的 4 秒，不給卡頓線路任何排隊拖延的機會
+        with requests.get(url, headers=headers, timeout=4, stream=True, verify=False, allow_redirects=True) as response:
+            if response.status_code < 400:
+                content_type = response.headers.get("Content-Type") or ""
                 
-                # 💡【全新全封閉安全防禦】在提取區塊時單獨加鎖，杜絕任何網路底層斷線崩潰的可能
-                try:
+                # 判斷是否為 HLS 串流
+                if "m3u8" in url.lower() or "mpegurl" in content_type.lower():
+                    # 縮小緩衝區至 512 位元組，只極速探測開頭，避免觸發畸形封包中斷
+                    chunk_iterator = response.iter_content(chunk_size=512)
+                    content_sample = ""
+                    
                     for chunk in chunk_iterator:
                         if chunk:
                             content_sample = chunk.decode('utf-8', errors='ignore')
-                            break # 只要拿到第一個有效區塊就立刻跳出
-                except Exception as stream_err:
-                    print(f"串流讀取中斷，已安全略過: {url} -> {stream_err}")
-                    return False
-                
-                # 必須嚴格包含 HLS 的核心特徵宣告，才算通過健康檢查
-                if "#EXT" in content_sample:
-                    return True
-                else:
-                    return False # 伺服器雖在，但已無實質影片流內容（空包彈），淘汰
-            return True # 其他直連流
-    except:
+                            break # 順利拿到第一個片段就立刻跳出
+                    
+                    # 嚴格驗證串流的核心標頭特徵
+                    if "#EXT" in content_sample:
+                        return True
+                    else:
+                        return False # 假活網，淘汰
+                return True # 其他直連媒體流
+    except Exception as e:
+        # 完美吸收並吞掉所有畸形 HTTP 回應、網路硬性中斷、超時等所有崩潰漏洞
         pass
         
-    # 保底輕量化 HEAD 探測 (防禦少部分禁止海外機房 GET 卻真實存在的來源)
+    # 保底輕量化 HEAD 探測 (防禦少部分拒絕 GET 卻真實存在的特殊來源)
     try:
         response = requests.head(url, headers=headers, timeout=3, allow_redirects=True, verify=False)
         if response.status_code < 500:
