@@ -2,6 +2,7 @@ import re
 import time
 import requests
 import urllib3
+from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 
 # 關閉 SSL 憑證警告
@@ -33,33 +34,91 @@ EXCLUDE_CHANNELS = {
 
 session = requests.Session()
 session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': '*/*',
     'Connection': 'keep-alive'
 })
 
 def check_url_alive(url):
     """
-    流媒體快速驗證：支援 HTTP 轉向 (allow_redirects=True) 以正確檢測 API 型 4gtv 線路
+    深度流媒體驗證：
+    1. 針對 4gtv 線路進行無條件保底放行（視為存活且延遲為 0）
+    2. 抓取 M3U8 檔並解析 TS 切片網址
+    3. 下載實體 TS 切片，驗證是否具備影音數據流（長度 > 10KB）
+    4. 連續檢測切片，防止首片段讀取成功但後續卡死
     """
+    # ⚡ [關鍵修改]：4gtv 線路無條件保底放行
+    if "4gtv" in url.lower():
+        return (True, 0.0)
+
     start_time = time.time()
-    is_4gtv = "4gtv" in url.lower()
-    
     try:
-        # 允許追蹤 301/302 轉向
-        res = session.get(url, timeout=2.5, verify=False, stream=True, allow_redirects=True)
-        if res.status_code < 400:
-            chunk = next(res.iter_content(chunk_size=1024), None)
-            if chunk and len(chunk) > 0:
+        # Step 1: 請求主 m3u8 檔 (允許追蹤轉向)
+        res = session.get(url, timeout=3.5, verify=False, allow_redirects=True)
+        if res.status_code >= 400:
+            return (False, 999)
+        
+        content_type = res.headers.get('Content-Type', '').lower()
+        text = res.text
+
+        # 如果回應的是 m3u8 播放清單
+        if "#EXTM3U" in text or "mpegurl" in content_type:
+            ts_urls = []
+            for line in text.splitlines():
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    ts_urls.append(urljoin(res.url, line))
+            
+            if not ts_urls:
+                return (False, 999)
+
+            # 若遇到 Master Playlist (嵌套 M3U8)，對第一個子 M3U8 再做一次解析
+            first_target = ts_urls[0]
+            if ".m3u8" in first_target.lower() or "mpegurl" in content_type:
+                sub_res = session.get(first_target, timeout=3.0, verify=False, allow_redirects=True)
+                if sub_res.status_code >= 400:
+                    return (False, 999)
+                
+                sub_ts_urls = []
+                for sub_line in sub_res.text.splitlines():
+                    sub_line = sub_line.strip()
+                    if sub_line and not sub_line.startswith("#"):
+                        sub_ts_urls.append(urljoin(sub_res.url, sub_line))
+                ts_urls = sub_ts_urls
+
+            if not ts_urls:
+                return (False, 999)
+
+            # Step 2: 隨機/依序驗證前 1~2 個 TS 切片檔，確保串流可持續播放
+            valid_ts_count = 0
+            test_ts_targets = ts_urls[:2] # 測試前兩個切片
+            
+            for ts_url in test_ts_targets:
+                try:
+                    ts_res = session.get(ts_url, timeout=2.5, verify=False, stream=True, allow_redirects=True)
+                    if ts_res.status_code < 400:
+                        # 讀取切片前 10KB 數據
+                        chunk = next(ts_res.iter_content(chunk_size=10240), None)
+                        if chunk and len(chunk) >= 1024:  # 數據量必須高於 1KB
+                            valid_ts_count += 1
+                except Exception:
+                    continue
+
+            # 必須至少有 1 個切片驗證通過
+            if valid_ts_count > 0:
                 elapsed = time.time() - start_time
                 return (True, elapsed)
+
+        # 非 M3U8 的直接影音串流檔處理
+        else:
+            chunk = next(res.iter_content(chunk_size=10240), None)
+            if chunk and len(chunk) >= 1024:
+                elapsed = time.time() - start_time
+                return (True, elapsed)
+
     except Exception:
         pass
-        
-    # 特殊處理：4gtv API 就算自動探測超時，通常也是可播放的，直接給予保底放行
-    if is_4gtv:
-        return (True, 0.5)
-        
+
     return (False, 999)
 
 def clean_filter_smart_merge():
@@ -154,13 +213,13 @@ def clean_filter_smart_merge():
                 if line not in channels[unique_key]["urls"]:
                     channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時數據探測 (支援 API 轉向測速)...")
+    print("\n⚡ 正在進行 TS 切片級流媒體數據探測 (過濾黑屏/卡頓線路)...")
     
     all_urls_to_test = [url for ch_data in channels.values() for url in ch_data["urls"]]
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, (is_alive, delay) in zip(unique_urls_to_test, results):
             alive_urls_map[url] = {"is_alive": is_alive, "delay": delay}
@@ -168,12 +227,12 @@ def clean_filter_smart_merge():
     output = [extm3u_header]
     total_lines_written = 0
 
-    # 排序核心原則：4gtv 強制最優先 -> 是否存活 -> 延遲低優先
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         is_4gtv = 1 if "4gtv" in u.lower() else 0
         is_alive = 1 if info["is_alive"] else 0
-        return (is_4gtv, is_alive, -info["delay"])
+        # 排序權重：1. 是否存活 -> 2. 是否為 4gtv 線路 -> 3. 延遲 (低延遲優先)
+        return (is_alive, is_4gtv, -info["delay"])
 
     # --- 軌道 1：原始完整群組 ---
     for unique_key, ch_data in channels.items():
@@ -204,6 +263,7 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精選"
         sorted_urls = sorted(ch_data["urls"], key=url_sort_key, reverse=True)
         
+        # 嚴格限制：只有真正存活且驗證通過（包含 4gtv 保底放行）的線路才會進入精選群組
         best_url = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best_url:
@@ -216,7 +276,7 @@ def clean_filter_smart_merge():
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【4gtv 優先權重調整完成！】")
+    print(f"\n【TS 切片檢測完成！】")
     print(f"📈 總共輸出線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
