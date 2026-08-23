@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import requests
@@ -23,14 +24,12 @@ HEADERS = {
 }
 
 def check_url_alive(url):
-    """防卡死單機連線測試"""
     if "4gtv" in url.lower():
         return url, True, 0.0
 
     start_time = time.time()
     try:
-        # ⚡ 不使用 Session，改用單次 request，強行 2.0 秒超時斷開
-        res = requests.get(url, headers=HEADERS, timeout=2.0, verify=False, allow_redirects=True)
+        res = requests.get(url, headers=HEADERS, timeout=1.5, verify=False, allow_redirects=True)
         if res.status_code >= 400:
             return url, False, 999
 
@@ -44,7 +43,7 @@ def check_url_alive(url):
 
             first_target = ts_urls[0]
             if ".m3u8" in first_target.lower():
-                sub_res = requests.get(first_target, headers=HEADERS, timeout=1.5, verify=False, allow_redirects=True)
+                sub_res = requests.get(first_target, headers=HEADERS, timeout=1.0, verify=False, allow_redirects=True)
                 if sub_res.status_code >= 400:
                     return url, False, 999
                 ts_urls = [urljoin(sub_res.url, line.strip()) for line in sub_res.text.splitlines() if line.strip() and not line.strip().startswith("#")]
@@ -52,8 +51,7 @@ def check_url_alive(url):
             if not ts_urls:
                 return url, False, 999
 
-            # 只測第 1 個 TS
-            ts_res = requests.get(ts_urls[0], headers=HEADERS, timeout=1.5, verify=False, stream=True, allow_redirects=True)
+            ts_res = requests.get(ts_urls[0], headers=HEADERS, timeout=1.0, verify=False, stream=True, allow_redirects=True)
             if ts_res.status_code < 400:
                 chunk = next(ts_res.iter_content(chunk_size=1024), None)
                 if chunk and len(chunk) >= 512:
@@ -69,7 +67,6 @@ def check_url_alive(url):
     return url, False, 999
 
 def clean_filter_smart_merge():
-    # ⚡ flush=True 強制輸出 Log 到 GitHub Actions 畫面
     print("正在下載 CCSH/IPTV 原始直播源...", flush=True)
     try:
         response = requests.get(ORIGINAL_URL, headers=HEADERS, timeout=10)
@@ -137,25 +134,26 @@ def clean_filter_smart_merge():
     alive_urls_map = {}
     start_time = time.time()
 
-    # ⚡ 限時 35 秒，時間一到直接 break
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = [executor.submit(check_url_alive, url) for url in all_urls]
-        for future in as_completed(futures):
-            if time.time() - start_time > 35:
-                print("⚡ 已達 35 秒上限，強制截斷剩餘測試！", flush=True)
-                break
-            try:
-                u, is_alive, delay = future.result()
-                alive_urls_map[u] = {"is_alive": is_alive, "delay": delay}
-            except Exception:
-                pass
+    # 降低線程數至 15，減少阻斷現象
+    executor = ThreadPoolExecutor(max_workers=15)
+    futures = [executor.submit(check_url_alive, url) for url in all_urls]
+    
+    for future in as_completed(futures):
+        if time.time() - start_time > 30:
+            print("⚡ 已達 30 秒上限，強制收尾並寫入檔案！", flush=True)
+            break
+        try:
+            u, is_alive, delay = future.result()
+            alive_urls_map[u] = {"is_alive": is_alive, "delay": delay}
+        except Exception:
+            pass
 
     output = [extm3u_header]
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if "4gtv" in u.lower() else 0, -info["delay"])
 
-    # 輸出完整版
+    # 1. 完整版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
@@ -165,7 +163,7 @@ def clean_filter_smart_merge():
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
-    # 輸出精選版
+    # 2. 精選版
     for key, ch in channels.items():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
@@ -176,7 +174,10 @@ def clean_filter_smart_merge():
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
 
-    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒", flush=True)
+    print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒，直接退出進程。", flush=True)
+    
+    # 強制立即終止系統進程，不等待背景掛起的 HTTP 請求
+    os._exit(0)
 
 if __name__ == "__main__":
     clean_filter_smart_merge()
