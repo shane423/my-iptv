@@ -24,6 +24,7 @@ HEADERS = {
 }
 
 def check_url_alive(url):
+    # ⚡ 1. 4gtv 一律直接判定為有效，0秒延遲
     if "4gtv" in url.lower():
         return url, True, 0.0
 
@@ -82,7 +83,7 @@ def clean_filter_smart_merge():
     current_raw_info = {}
     extm3u_header = "#EXTM3U"
 
-    for line in lines:
+    for idx, line in enumerate(lines):
         line = line.strip()
         if not line:
             continue
@@ -91,12 +92,19 @@ def clean_filter_smart_merge():
                 extm3u_header = line
             continue
         if line.startswith("#EXTINF"):
+            # 檢查下一行 URL 是否包含 4gtv
+            next_url = lines[idx+1].strip() if idx + 1 < len(lines) else ""
+            is_4gtv = "4gtv" in next_url.lower()
+
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
-            if g_name not in TARGET_GROUPS:
+            
+            # ⚡ 2. 如果是 4gtv，跳過 TARGET_GROUPS 檢查；否則才過濾分類
+            if not is_4gtv and g_name not in TARGET_GROUPS:
                 current_group = None
                 continue
-            if g_name == "港澳台":
+
+            if g_name == "港澳台" or is_4gtv:
                 g_name = "台灣"
 
             name_match = re.search(r',([^,]+)$', line)
@@ -134,7 +142,6 @@ def clean_filter_smart_merge():
     alive_urls_map = {}
     start_time = time.time()
 
-    # 降低線程數至 15，減少阻斷現象
     executor = ThreadPoolExecutor(max_workers=15)
     futures = [executor.submit(check_url_alive, url) for url in all_urls]
     
@@ -176,7 +183,7 @@ def clean_filter_smart_merge():
 
     print(f"【成功完成！】總耗時：{round(time.time() - start_time, 1)} 秒，直接退出進程。", flush=True)
     
-    # 強制立即終止系統進程，不等待背景掛起的 HTTP 請求
+    # ⚡ 強制立即殺掉進程，避免死鎖卡在 Actions
     os._exit(0)
 
 if __name__ == "__main__":
