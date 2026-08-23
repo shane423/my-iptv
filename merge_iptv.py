@@ -18,7 +18,7 @@ SOURCES = [
 # GitHub 等其他來源要抓取的簡體群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"}
 
-# zbds.top 來源指定發生的群組（嚴格只抓這兩個）
+# zbds.top 來源指定抓取的群組（嚴格只抓這兩個）
 ZBDS_TARGET_GROUPS = {"儿童频道", "电影频道"}
 
 # 映射至 Kodi 顯示的繁體群組名稱
@@ -103,13 +103,11 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    # 限制最大 Concurrent 為 40 (套用第二份設定)
     sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
-        # 設定整體任務絕殺時間為 18 秒
         try:
             results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
@@ -156,7 +154,7 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                # zbds 嚴格過濾：只要兒童頻道與電影頻道
+                # 【準確過濾】：zbds 嚴格只留「儿童频道」與「电影频道」
                 if is_zbds:
                     if raw_g_name not in ZBDS_TARGET_GROUPS:
                         current_group = None
@@ -190,14 +188,16 @@ def clean_filter_smart_merge():
 
                     current_group = g_name
                     current_name = clean_name
-                    current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str}
+                    current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str, "is_zbds": is_zbds}
             elif line.startswith("http") and current_group and current_name:
                 key = f"{current_group}___{current_name}"
                 if key not in channels:
                     channels[key] = {
                         "group": current_group, "name": current_name,
                         "logo_str": current_raw_info.get("logo_str", ""),
-                        "tvg_id_str": current_raw_info.get("tvg_id_str", ""), "urls": []
+                        "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
+                        "is_zbds": current_raw_info.get("is_zbds", False),
+                        "urls": []
                     }
                 if line not in channels[key]["urls"]:
                     channels[key]["urls"].append(line)
@@ -206,7 +206,7 @@ def clean_filter_smart_merge():
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
     alive_urls_map = {}
-    # 預先處理豁免項目（4gtv 及 zbds.top 來源）
+    # 預先處理豁免項目（4gtv 及 zbds.top 來源直接判定存活）
     for u in all_urls:
         if "4gtv" in u.lower() or "zbds.top" in u.lower():
             alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
@@ -214,11 +214,11 @@ def clean_filter_smart_merge():
     scan_targets = [u for u in all_urls if u not in alive_urls_map]
     start_time = time.time()
 
-    # 執行 AsyncIO 嚴格掃描
+    # 執行 AsyncIO 嚴格掃描（僅掃描一般來源）
     scanned_results = asyncio.run(scan_all_urls(scan_targets))
     alive_urls_map.update(scanned_results)
 
-    # 備援與保底機制：若有未測到的剩餘網址（如整體 18s 超時），預設設為失效 (False, 999) 貫徹嚴格篩選
+    # 備援與保底機制：若有未測到的剩餘網址（如整體 18s 超時），預設設為失效 (False, 999)
     for u in all_urls:
         if u not in alive_urls_map:
             alive_urls_map[u] = {"is_alive": False, "delay": 999}
@@ -240,17 +240,22 @@ def clean_filter_smart_merge():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 1. 寫入「精選版」頻道（套用第二份程式碼的嚴格過濾：無存活線路者直接剔除）
+    # 1. 寫入「精選版」頻道
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        # 僅選取 is_alive 為 True 的第一條最佳線路
-        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        
+        # 【關鍵修復點】：若該頻道屬於 zbds 來源，無視 is_alive 條件強制匯入精選；一般頻道則必須 is_alive 為 True
+        if ch.get("is_zbds", False):
+            best = sorted_urls[0] if sorted_urls else None
+        else:
+            best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+            
         if best:
             group_display = f"{ch['group']}_精選"
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
             output.append(best)
 
-    # 2. 寫入完整版頻道（保留全部線路，並標記 [卡頓/失效]）
+    # 2. 寫入完整版頻道
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
