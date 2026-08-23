@@ -30,7 +30,7 @@ jobs:
       # 4. 執行智慧清洗與雙軌精簡偵測腳本
       # 備註：如果您的 Python 腳本不叫 main.py，請將下方 main.py 改成您實際的檔名
       - name: 執行智慧清洗與雙軌精簡偵測腳本 (Run Script)
-        run: python main.py
+        run: python merge_iptv.py
 
       # 5. 提交並推送最新 M3U 直播源
       - name: 提交並推送最新 M3U 直播源 (Commit and Push changes)
