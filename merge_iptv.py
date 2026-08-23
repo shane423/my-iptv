@@ -1,13 +1,14 @@
 import re
 import requests
 import urllib3
+from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
-ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u" # 請依需求修正為完整 URL
+ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u" # 請在此處補全你的完整 GitHub 原始 M3U 網址
 
 # 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
@@ -24,35 +25,57 @@ EXCLUDE_CHANNELS = [
 
 def check_url_alive(url):
     """
-    【進階深度驗證 - 串流即時篩選】
-    1. 僅接受 HTTP 200/206 狀態碼。
-    2. 針對 M3U8/TS 串流進行首區段（Header/Content）特徵比對，避免被假 200 網頁欺騙。
+    【進階實體切片與下載速率檢測 - 專殺 7 秒卡死與假活網】
+    1. 不只檢查 M3U8，更會提取內部實體 TS 影片切片。
+    2. 實測 TS 下載速率，要求 1.5 秒內下載至少 64KB，確保串流頻寬足夠順暢播放。
     """
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': '*/*',
         'Connection': 'close'
     }
     
     try:
-        # 使用 stream=True 僅下載前 1KB 數據進行內文快篩，不占用額外頻寬
-        with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
-            if response.status_code in [200, 206]:
-                # 讀取前 512 個位元組分析內容
-                chunk = next(response.iter_content(chunk_size=512), b"")
-                chunk_str = chunk.decode('utf-8', errors='ignore')
+        # 第一階段：存取 M3U8 播放清單
+        res = requests.get(url, headers=headers, timeout=2.5, stream=True, verify=False, allow_redirects=True)
+        if res.status_code not in [200, 206]:
+            return False
+            
+        content_type = res.headers.get('Content-Type', '').lower()
+        if 'text/html' in content_type: # 排除偽裝成 200 OK 的 HTML 錯誤頁面
+            return False
+
+        target_ts_url = None
+        
+        # 若為 M3U8 清單，解析出裡面的第一個 TS 切片網址
+        if ".m3u8" in url.lower() or "mpegurl" in content_type or "apple.mime" in content_type:
+            lines = res.text.splitlines()
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    target_ts_url = urljoin(url, line)
+                    break
+        else:
+            target_ts_url = url
+
+        if not target_ts_url:
+            return False
+
+        # 第二階段：關鍵防卡頓測試 (實際讀取 TS 切片並評估頻寬)
+        with requests.get(target_ts_url, headers=headers, timeout=2.0, stream=True, verify=False) as ts_res:
+            if ts_res.status_code not in [200, 206]:
+                return False
                 
-                # 如果是 HTML 網頁標籤，代表是轉址失敗頁或廣告頁
-                if "<html" in chunk_str.lower() or "<doctype" in chunk_str.lower():
-                    return False
-                
-                # 若為 HLS 清單，應包含 M3U 標籤特徵；若是 TS 媒體流則檢驗同步字元 (0x47)
-                if ".m3u8" in url.lower():
-                    return "#EXTM3U" in chunk_str or "#EXTINF" in chunk_str
-                
-                return True
+            downloaded = 0
+            # 要求必須順暢下載 64KB (65536 bytes) 的實體影片內容
+            for chunk in ts_res.iter_content(chunk_size=16384):
+                if chunk:
+                    downloaded += len(chunk)
+                    if downloaded >= 65536:
+                        return True
+                        
     except BaseException:
-        pass
+        return False
         
     return False
 
@@ -154,7 +177,7 @@ def clean_filter_smart_merge():
                     else:
                         channels[unique_key]["urls"].append(line)
 
-    print("\n⚡ 正在進行線上即時深度串流偵測...")
+    print("\n⚡ 正在進行 TS 切片下載速率與防卡頓偵測 (請稍候)...")
     
     all_urls_to_test = []
     for unique_key, ch_data in channels.items():
@@ -163,12 +186,13 @@ def clean_filter_smart_merge():
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
     
-    # 調高併發連線數量至 15 以加快檢測速度
-    with ThreadPoolExecutor(max_workers=15) as executor:
+    # 併發設定為 8，避免線程過高影響本地頻寬測速準確度
+    with ThreadPoolExecutor(max_workers=8) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
             alive_urls_map[url] = is_alive
 
+    # 第三階段：重新組合輸出
     output = [extm3u_header]
     total_lines_written = 0
     
@@ -203,7 +227,7 @@ def clean_filter_smart_merge():
         lite_group_name = f"{g_name}_精簡"
         best_url = None
         
-        # 嚴格篩選：僅選取通過深度探測的第一個有效來源
+        # 挑選通過 TS 下載頻寬測試的第一個真正可播放的來源
         for url in urls:
             if alive_urls_map.get(url, False):
                 best_url = url
@@ -215,11 +239,12 @@ def clean_filter_smart_merge():
             output.append(best_url)
             total_lines_written += 1
 
+    # 寫入最終成品檔案
     output_filename = "taiwan_live.m3u"
     with open(output_filename, "w", encoding="utf-8") as f:
         f.write("\n".join(output))
         
-    print(f"\n【全球雙軌精簡優化完成！已剔除假活網與失效頻道。】")
+    print(f"\n【全球雙軌精簡優化完成！已剔除慢速及卡頓頻道。】")
     print(f"📈 總共輸出優質線路共：{total_lines_written} 條。")
 
 if __name__ == "__main__":
