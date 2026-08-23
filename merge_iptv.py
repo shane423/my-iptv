@@ -6,13 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 # 關閉 SSL 憑證警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 1. 精準指向 CCSH/IPTV 專案最新的原始 M3U 直播源
 ORIGINAL_URL = "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u"
-
-# 2. 保留的 6 大分組群組
 TARGET_GROUPS = ["港澳台", "电影", "电视剧", "综艺频道", "NewTV", "儿童频道"]
-
-# 3. 您的專屬頻道黑名單
 EXCLUDE_CHANNELS = [
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影", 
     "星空卫视", "Channel[V]", "Channel V", "ChannelV",
@@ -23,18 +18,11 @@ EXCLUDE_CHANNELS = [
 ]
 
 def check_url_alive(url):
-    """
-    【強化版檢測】
-    - 3秒超時
-    - 狀態碼 < 500
-    - Content-Type 必須合理 (video/ 或 application/octet-stream)
-    """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Chromecast) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
         'Accept': '*/*',
         'Connection': 'close'
     }
-    
     try:
         with requests.get(url, headers=headers, timeout=3, stream=True, verify=False, allow_redirects=True) as response:
             if response.status_code < 500:
@@ -43,7 +31,6 @@ def check_url_alive(url):
                     return True
     except Exception:
         return False
-        
     try:
         response = requests.head(url, headers=headers, timeout=2, allow_redirects=True, verify=False)
         if response.status_code < 500:
@@ -52,7 +39,6 @@ def check_url_alive(url):
                 return True
     except Exception:
         return False
-        
     return False
 
 def clean_filter_smart_merge():
@@ -80,28 +66,22 @@ def clean_filter_smart_merge():
         line = line.strip()
         if not line:
             continue
-            
         if line.startswith("#EXTM3U"):
             if 'x-tvg-url=' in line:
                 extm3u_header = line
             continue
-            
         if line.startswith("#EXTINF"):
             group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
             g_name = group_match.group(1).strip() if group_match else "其他"
-                
             if g_name not in TARGET_GROUPS:
                 current_group = None
                 current_clean_name = None
                 continue
-                
             if g_name == "港澳台":
                 g_name = "台灣"
-                
             name_match = re.search(r',([^,]+)$', line)
             if name_match:
                 raw_name = name_match.group(1).strip()
-                
                 clean_name = raw_name
                 clean_name = re.sub(r'[\-\s_#]+\d+$', '', clean_name)
                 clean_name = re.sub(r'[\s\(\停\（
@@ -111,32 +91,26 @@ def clean_filter_smart_merge():
 ]+', '', clean_name)
                 clean_name = re.sub(r'(副本\d*|Copy\d*|HD|hd|4K|4k|藍光|1080[pP]|720[pP])', '', clean_name)
                 clean_name = clean_name.strip()
-                
                 if not clean_name:
                     clean_name = raw_name
-                
                 is_excluded = any(black.upper() in clean_name.upper() or black.upper() in raw_name.upper() for black in EXCLUDE_CHANNELS)
                 if is_excluded:
                     current_group = None
                     current_clean_name = None
                     continue
-                
                 logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
                 tvg_id_match = re.search(r'tvg-id=["\']([^"\']+)["\']', line)
                 logo_str = f' tvg-logo="{logo_match.group(1)}"' if logo_match else ""
                 tvg_id_str = f' tvg-id="{tvg_id_match.group(1)}"' if tvg_id_match else ""
-                
                 current_group = g_name
                 current_clean_name = clean_name
                 current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str}
             else:
                 current_group = None
                 current_clean_name = None
-                
         elif line.startswith("http"):
             if current_group and current_clean_name:
                 unique_key = f"{current_group}___{current_clean_name}"
-                
                 if unique_key not in channels:
                     channels[unique_key] = {
                         "group": current_group,
@@ -145,7 +119,6 @@ def clean_filter_smart_merge():
                         "tvg_id_str": current_raw_info["tvg_id_str"],
                         "urls": []
                     }
-                
                 if line not in channels[unique_key]["urls"]:
                     if "4gtv" in line.lower():
                         channels[unique_key]["urls"].insert(0, line)
@@ -153,14 +126,11 @@ def clean_filter_smart_merge():
                         channels[unique_key]["urls"].append(line)
 
     print("\n⚡ 正在進行線上即時深度串流偵測...")
-    
     all_urls_to_test = []
     for ch_data in channels.values():
         all_urls_to_test.extend(ch_data["urls"])
-    
     unique_urls_to_test = list(set(all_urls_to_test))
     alive_urls_map = {}
-    
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = executor.map(check_url_alive, unique_urls_to_test)
         for url, is_alive in zip(unique_urls_to_test, results):
@@ -168,7 +138,7 @@ def clean_filter_smart_merge():
 
     output = [extm3u_header]
     total_lines_written = 0
-    
+
     # 軌道 1：完整群組
     for ch_data in channels.values():
         g_name = ch_data["group"]
@@ -176,9 +146,7 @@ def clean_filter_smart_merge():
         logo_str = ch_data["logo_str"]
         tvg_id_str = ch_data["tvg_id_str"]
         urls = ch_data["urls"]
-        
         sorted_urls = sorted(urls, key=lambda u: 1 if alive_urls_map.get(u, False) else 0, reverse=True)
-        
         for idx, url in enumerate(sorted_urls, start=1):
             is_alive_bool = alive_urls_map.get(url, False)
             is_alive_label = "" if is_alive_bool else "[卡頓/失效]"
@@ -188,5 +156,4 @@ def clean_filter_smart_merge():
             output.append(url)
             total_lines_written += 1
 
-    # 軌道 2：精簡群組
-    print("正在生成對應的『_精簡』複製群組
+    # 軌道 2：精簡群組，只保留第一個真正活的 URL
