@@ -6,6 +6,7 @@ import requests
 import urllib3
 import aiohttp
 from urllib.parse import urljoin
+from yt_dlp import YoutubeDL
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -14,6 +15,21 @@ SOURCES = [
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u",
     "https://live.zbds.top/tv/iptv4.m3u"
 ]
+
+# YouTube 頻道直播抓取配置
+YOUTUBE_TARGETS = {
+    "卡通": [
+        "https://www.youtube.com/@Muse_Family/streams",
+        "https://www.youtube.com/@MuseTW/streams",
+        "https://www.youtube.com/@AniOneAnime/streams"
+    ],
+    "電視劇": [
+        "https://www.youtube.com/@ELTAWORLD/streams",
+        "https://www.youtube.com/@gtv-drama/streams",
+        "https://www.youtube.com/@cts_drama/streams",
+        "https://www.youtube.com/@SETdrama/streams"
+    ]
+}
 
 # GitHub 等其他來源要抓取的簡體群組
 TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"}
@@ -47,9 +63,69 @@ HEADERS = {
     'Accept': '*/*'
 }
 
+def fetch_youtube_streams(target_group, urls):
+    """
+    使用 yt-dlp 解析 YouTube 頻道頁面中正在進行的直播，返回解析後的頻道字典
+    """
+    yt_channels = {}
+    ydl_opts = {
+        'extract_flat': 'in_playlist',
+        'skip_download': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+
+    ydl_stream_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+    }
+
+    print(f"📡 開始解析 YouTube [{target_group}] 直播...", flush=True)
+
+    with YoutubeDL(ydl_opts) as ydl, YoutubeDL(ydl_stream_opts) as ydl_stream:
+        for channel_url in urls:
+            try:
+                # 抓取頻道頁面的影片清單
+                info = ydl.extract_info(channel_url, download=False)
+                entries = info.get('entries', [])
+                
+                for entry in entries:
+                    live_status = entry.get('live_status')
+                    # 篩選正在直播的項目
+                    if live_status == 'is_live' or entry.get('is_live'):
+                        video_url = f"https://www.youtube.com/watch?v={entry['id']}"
+                        title = entry.get('title', 'YouTube直播').strip()
+                        thumbnail = entry.get('thumbnails', [{}])[-1].get('url', '')
+
+                        # 解析真實 M3U8 播放網址
+                        try:
+                            stream_info = ydl_stream.extract_info(video_url, download=False)
+                            m3u8_url = stream_info.get('url')
+                            if m3u8_url:
+                                key = f"{target_group}___{title}"
+                                yt_channels[key] = {
+                                    "group": target_group,
+                                    "name": title,
+                                    "logo_str": f' tvg-logo="{thumbnail}"' if thumbnail else "",
+                                    "tvg_id_str": "",
+                                    "is_zbds": False,
+                                    "is_yt": True, # 標記為 YT 直播，便於後續置頂與豁免
+                                    "urls": [m3u8_url]
+                                }
+                                print(f"  └─ [成功擷取] {title}", flush=True)
+                        except Exception as e:
+                            print(f"  └─ 擷取串流網址失敗 ({title}): {e}", flush=True)
+
+            except Exception as e:
+                print(f"解析 YouTube 頻道失敗 ({channel_url}): {e}", flush=True)
+
+    return yt_channels
+
 async def check_single_url(session, url, sem):
-    # 【豁免機制】4gtv 與 live.zbds.top 來源免受嚴格測速限制，直接判定為存活
-    if "4gtv" in url.lower() or "zbds.top" in url.lower():
+    # 【豁免機制】4gtv、live.zbds.top 與 YouTube/Google 直播源免受嚴格測速限制，直接判定為存活
+    url_lower = url.lower()
+    if "4gtv" in url_lower or "zbds.top" in url_lower or "googlevideo.com" in url_lower or "youtube.com" in url_lower:
         return url, True, 0.0
 
     async with sem:
@@ -123,6 +199,12 @@ def clean_filter_smart_merge():
     channels = {}
     extm3u_header = "#EXTM3U"
 
+    # 1. 抓取 YouTube 直播頻道
+    for group_name, yt_urls in YOUTUBE_TARGETS.items():
+        yt_data = fetch_youtube_streams(group_name, yt_urls)
+        channels.update(yt_data)
+
+    # 2. 抓取一般 M3U 直播源
     for src_url in SOURCES:
         print(f"正在下載直播源: {src_url} ...", flush=True)
         is_zbds = "live.zbds.top" in src_url
@@ -197,6 +279,7 @@ def clean_filter_smart_merge():
                         "logo_str": current_raw_info.get("logo_str", ""),
                         "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
                         "is_zbds": current_raw_info.get("is_zbds", False),
+                        "is_yt": False,
                         "urls": []
                     }
                 if line not in channels[key]["urls"]:
@@ -206,9 +289,10 @@ def clean_filter_smart_merge():
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
     alive_urls_map = {}
-    # 預先處理豁免項目（4gtv 及 zbds.top 來源直接判定存活）
+    # 預先處理豁免項目（4gtv、zbds.top 及 YouTube 直播來源直接判定存活）
     for u in all_urls:
-        if "4gtv" in u.lower() or "zbds.top" in u.lower():
+        u_lower = u.lower()
+        if "4gtv" in u_lower or "zbds.top" in u_lower or "googlevideo.com" in u_lower or "youtube.com" in u_lower:
             alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
 
     scan_targets = [u for u in all_urls if u not in alive_urls_map]
@@ -228,15 +312,17 @@ def clean_filter_smart_merge():
     # URL 排序權重算法
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
-        return (1 if info["is_alive"] else 0, 1 if ("4gtv" in u.lower() or "zbds.top" in u.lower()) else 0, -info["delay"])
+        u_lower = u.lower()
+        is_exempt = "4gtv" in u_lower or "zbds.top" in u_lower or "googlevideo.com" in u_lower or "youtube.com" in u_lower
+        return (1 if info["is_alive"] else 0, 1 if is_exempt else 0, -info["delay"])
 
-    # 頻道群組指定順序排序
+    # 頻道群組指定順序排序 + **YouTube 頻道強制頂置 (is_yt)**
     def channel_group_sort_key(item):
         ch = item[1]
         group = ch["group"]
-        if group in ORDERED_GROUPS:
-            return ORDERED_GROUPS.index(group)
-        return 999
+        is_yt = 0 if ch.get("is_yt", False) else 1  # 0 排前面 (置頂)
+        group_idx = ORDERED_GROUPS.index(group) if group in ORDERED_GROUPS else 999
+        return (group_idx, is_yt)
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
@@ -244,7 +330,7 @@ def clean_filter_smart_merge():
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         
-        if ch.get("is_zbds", False):
+        if ch.get("is_zbds", False) or ch.get("is_yt", False):
             best = sorted_urls[0] if sorted_urls else None
         else:
             best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
