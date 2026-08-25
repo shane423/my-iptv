@@ -9,14 +9,18 @@ from urllib.parse import urljoin
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 定義多個 M3U 來源網址
+# 定義多個 M3U 來源網址（加入新來源 live_platforms.m3u）
 SOURCES = [
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u",
+    "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_platforms.m3u",
     "https://live.zbds.top/tv/iptv4.m3u"
 ]
 
-# GitHub 等其他來源要抓取的簡體群組
-TARGET_GROUPS = {"港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"}
+# GitHub 等其他來源要抓取的群組（加入 zonghe、一起看、原创、原创IP）
+TARGET_GROUPS = {
+    "港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道",
+    "zonghe", "一起看", "原创", "原创IP"
+}
 
 # zbds.top 來源指定抓取的群組（嚴格只抓這兩個）
 ZBDS_TARGET_GROUPS = {"儿童频道", "电影频道"}
@@ -28,11 +32,16 @@ GROUP_NAME_MAP = {
     "电影频道": "電影",
     "电视剧": "電視劇",
     "儿童频道": "卡通",
-    "NewTV": "NewTV"
+    "NewTV": "NewTV",
+    # 將新群組統一對應至「其他」
+    "zonghe": "其他",
+    "一起看": "其他",
+    "原创": "其他",
+    "原创IP": "其他"
 }
 
-# 精選群組的指定輸出順序
-ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV"]
+# 精選群組的指定輸出順序（將「其他」加入排序末尾）
+ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV", "其他"]
 
 # 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
