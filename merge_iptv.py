@@ -37,6 +37,14 @@ GROUP_NAME_MAP = {
     "原创IP": "其他"
 }
 
+# 定義 live_platforms.m3u 子群組的排序權重 (zonghe 在最上面)
+PLATFORM_GROUP_ORDER = {
+    "zonghe": 1,
+    "一起看": 2,
+    "原创": 3,
+    "原创IP": 4
+}
+
 # 精選群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV", "其他"]
 
@@ -142,6 +150,7 @@ def clean_filter_smart_merge():
             continue
 
         current_group = None
+        current_raw_group = None
         current_name = None
         current_raw_info = {}
 
@@ -163,6 +172,7 @@ def clean_filter_smart_merge():
                 # 【準確過濾】：只留該來源指定允許的群組（若為 4gtv 則直接允許通關）
                 if not is_4gtv and raw_g_name not in allowed_groups:
                     current_group = None
+                    current_raw_group = None
                     continue
 
                 g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(raw_g_name, raw_g_name)
@@ -180,6 +190,7 @@ def clean_filter_smart_merge():
 
                         if any(b in clean_name.upper() or b in raw_name.upper() for b in EXCLUDE_CHANNELS):
                             current_group = None
+                            current_raw_group = None
                             continue
 
                     logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
@@ -188,13 +199,21 @@ def clean_filter_smart_merge():
                     tvg_id_str = f' tvg-id="{tvg_id_match.group(1)}"' if tvg_id_match else ""
 
                     current_group = g_name
+                    current_raw_group = raw_g_name
                     current_name = clean_name
-                    current_raw_info = {"logo_str": logo_str, "tvg_id_str": tvg_id_str, "is_zbds": is_zbds}
+                    current_raw_info = {
+                        "logo_str": logo_str,
+                        "tvg_id_str": tvg_id_str,
+                        "is_zbds": is_zbds,
+                        "raw_group": raw_g_name
+                    }
             elif line.startswith("http") and current_group and current_name:
                 key = f"{current_group}___{current_name}"
                 if key not in channels:
                     channels[key] = {
-                        "group": current_group, "name": current_name,
+                        "group": current_group,
+                        "raw_group": current_raw_group,
+                        "name": current_name,
                         "logo_str": current_raw_info.get("logo_str", ""),
                         "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
                         "is_zbds": current_raw_info.get("is_zbds", False),
@@ -231,13 +250,13 @@ def clean_filter_smart_merge():
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
         return (1 if info["is_alive"] else 0, 1 if ("4gtv" in u.lower() or "zbds.top" in u.lower()) else 0, -info["delay"])
 
-    # 頻道群組指定順序排序
+    # 頻道群組與子群組指定順序排序 (zonghe (1) -> 一起看 (2) -> 原创 (3) -> 原创IP (4))
     def channel_group_sort_key(item):
         ch = item[1]
         group = ch["group"]
-        if group in ORDERED_GROUPS:
-            return ORDERED_GROUPS.index(group)
-        return 999
+        group_idx = ORDERED_GROUPS.index(group) if group in ORDERED_GROUPS else 999
+        sub_idx = PLATFORM_GROUP_ORDER.get(ch.get("raw_group", ""), 99)
+        return (group_idx, sub_idx)
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
