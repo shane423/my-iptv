@@ -9,21 +9,18 @@ from urllib.parse import urljoin
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 定義多個 M3U 來源網址（加入新來源 live_platforms.m3u）
-SOURCES = [
-    "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u",
-    "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_platforms.m3u",
-    "https://live.zbds.top/tv/iptv4.m3u"
-]
-
-# GitHub 等其他來源要抓取的群組（加入 zonghe、一起看、原创、原创IP）
-TARGET_GROUPS = {
-    "港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道",
-    "zonghe", "一起看", "原创", "原创IP"
+# 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
+SOURCE_TARGET_GROUPS = {
+    "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
+        "港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"
+    },
+    "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_platforms.m3u": {
+        "zonghe", "一起看", "原创", "原创IP"
+    },
+    "https://live.zbds.top/tv/iptv4.m3u": {
+        "儿童频道", "电影频道"
+    }
 }
-
-# zbds.top 來源指定抓取的群組（嚴格只抓這兩個）
-ZBDS_TARGET_GROUPS = {"儿童频道", "电影频道"}
 
 # 映射至 Kodi 顯示的繁體群組名稱
 GROUP_NAME_MAP = {
@@ -40,7 +37,7 @@ GROUP_NAME_MAP = {
     "原创IP": "其他"
 }
 
-# 精選群組的指定輸出順序（將「其他」加入排序末尾）
+# 精選群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV", "其他"]
 
 # 其他來源的頻道過濾黑名單
@@ -132,7 +129,7 @@ def clean_filter_smart_merge():
     channels = {}
     extm3u_header = "#EXTM3U"
 
-    for src_url in SOURCES:
+    for src_url, allowed_groups in SOURCE_TARGET_GROUPS.items():
         print(f"正在下載直播源: {src_url} ...", flush=True)
         is_zbds = "live.zbds.top" in src_url
         
@@ -163,15 +160,10 @@ def clean_filter_smart_merge():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
-                # 【準確過濾】：zbds 嚴格只留「儿童频道」與「电影频道」
-                if is_zbds:
-                    if raw_g_name not in ZBDS_TARGET_GROUPS:
-                        current_group = None
-                        continue
-                else:
-                    if not is_4gtv and raw_g_name not in TARGET_GROUPS:
-                        current_group = None
-                        continue
+                # 【準確過濾】：只留該來源指定允許的群組（若為 4gtv 則直接允許通關）
+                if not is_4gtv and raw_g_name not in allowed_groups:
+                    current_group = None
+                    continue
 
                 g_name = "台灣" if is_4gtv else GROUP_NAME_MAP.get(raw_g_name, raw_g_name)
 
