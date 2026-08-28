@@ -247,10 +247,16 @@ def clean_filter_smart_merge():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 1. 輸出「精選」群組區塊（統一精簡邏輯）
+    # 1. 輸出「精選」群組區塊
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        
+        # 【修改點】只要是「電影」或「其他」群組，直接取第一條 URL，完全不做了存活判定
+        if ch["group"] in ["電影", "其他"]:
+            best = sorted_urls[0] if sorted_urls else None
+        else:
+            # 其他群組（如台灣、卡通）依然進行存活檢查
+            best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best:
             group_display = f"{ch['group']}_精選"
