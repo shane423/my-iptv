@@ -85,8 +85,8 @@ async def fetch_m3u_text(session, url):
 
 async def check_single_url(session, url, sem):
     """
-    非同步網路檢測
-    為防範 4gtv 防盜鏈機制封鎖切片請求造成誤判，4gtv 回傳 HTTP 200 且包含 M3U 特徵即判定存活
+    極致放寬的非同步網路檢測：
+    只要伺服器有回應 (HTTP 200~399 甚至 403 鑑權失敗)，即認定線路存在 (is_alive = True)
     """
     is_4gtv = "4gtv" in url.lower()
     is_zbds = "zbds.top" in url.lower()
@@ -96,65 +96,32 @@ async def check_single_url(session, url, sem):
     async with sem:
         start_time = time.time()
         try:
-            conn_timeout = 1.5 if (is_4gtv or is_zbds) else 1.0
-            tot_timeout = 3.0 if (is_4gtv or is_zbds) else 2.0
-
-            timeout = aiohttp.ClientTimeout(total=tot_timeout, connect=conn_timeout)
+            # 顯著放寬 Timeout 限制 (連接 3 秒，總響應 5 秒)
+            timeout = aiohttp.ClientTimeout(total=5.0, connect=3.0)
             async with session.get(url, headers=req_headers, ssl=False, timeout=timeout, allow_redirects=True) as res:
-                if res.status >= 400:
-                    return url, False, 999
-
-                content_type = res.headers.get('Content-Type', '').lower()
-                text = await res.text(errors='ignore')
-
-                # 4gtv 專屬檢測邏輯
-                if is_4gtv:
-                    if "#EXTM3U" in text or "mpegurl" in content_type or res.status == 200:
-                        return url, True, time.time() - start_time
-
-                if "#EXTM3U" in text or "mpegurl" in content_type:
-                    ts_urls = [urljoin(str(res.url), line.strip()) for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
-                    if not ts_urls:
-                        return url, False, 999
-
-                    first_target = ts_urls[0]
-                    if ".m3u8" in first_target.lower():
-                        sub_timeout = aiohttp.ClientTimeout(total=1.5)
-                        async with session.get(first_target, headers=req_headers, ssl=False, timeout=sub_timeout, allow_redirects=True) as sub_res:
-                            if sub_res.status >= 400:
-                                return url, False, 999
-                            sub_text = await sub_res.text(errors='ignore')
-                            ts_urls = [urljoin(str(sub_res.url), line.strip()) for line in sub_text.splitlines() if line.strip() and not line.strip().startswith("#")]
-
-                    if not ts_urls:
-                        return url, False, 999
-
-                    ts_timeout = aiohttp.ClientTimeout(total=1.5)
-                    async with session.get(ts_urls[0], headers=req_headers, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
-                        if ts_res.status < 400:
-                            chunk = await ts_res.content.read(1024)
-                            if chunk and len(chunk) >= 512:
-                                delay = 0.0 if is_zbds else (time.time() - start_time)
-                                return url, True, delay
-                else:
-                    chunk = await res.content.read(1024)
-                    if chunk and len(chunk) >= 512:
-                        delay = 0.0 if is_zbds else (time.time() - start_time)
-                        return url, True, delay
+                # 放寬判斷：200-399 正確回應，或是 403 (防盜鏈攔截，但在 Kodi 上搭配 Header 可能可用)
+                if res.status < 400 or res.status == 403:
+                    delay = 0.0 if (is_4gtv or is_zbds) else (time.time() - start_time)
+                    return url, True, delay
 
         except Exception:
             pass
+
+        # 針對 4gtv 與 zbds 進行額外特赦：即便抓取失敗，依然給予基本存活判定，避免全部消失
+        if is_4gtv or is_zbds:
+            return url, True, 1.0
 
         return url, False, 999
 
 
 async def scan_all_urls(scan_targets, session):
-    sem = asyncio.Semaphore(40)
+    sem = asyncio.Semaphore(30)  # 降低並行度，減少被對方伺服器防火牆當成 DDoS 攔截
     alive_map = {}
     
     tasks = [check_single_url(session, url, sem) for url in scan_targets]
     try:
-        results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=25.0)
+        # 總掃描時間放寬至 35 秒
+        results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=35.0)
         for res in results:
             if isinstance(res, tuple):
                 u, is_alive, delay = res
@@ -260,7 +227,7 @@ async def clean_filter_smart_merge_async():
                         channels[key]["urls"].append(line)
 
         all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
-        print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描驗證 {len(all_urls)} 條線路...", flush=True)
+        print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始放寬檢測 {len(all_urls)} 條線路...", flush=True)
 
         start_time = time.time()
         alive_urls_map = await scan_all_urls(all_urls, session)
@@ -285,21 +252,22 @@ async def clean_filter_smart_merge_async():
 
         sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-        # 生成第一階段：精選頻道列表 (只嚴格寫入測速存活的線路，無存活則跳過)
+        # 生成第一階段：精選頻道列表 (優先選存活，全滅時選第 1 條保底)
         for key, ch in sorted_channels:
             sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
             
-            # 嚴格選取測速存活的最佳線路
+            # 優先找測速存活的，找不不到就選第一條 (保底)
             best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+            if not best and sorted_urls:
+                best = sorted_urls[0]
             
-            # 僅在有存活線路時才寫入精選區
             if best:
                 formatted_best = format_url_for_kodi(best)
                 group_display = f"{ch['group']}_精選"
                 output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
                 output.append(formatted_best)
 
-        # 生成第二階段：完整頻道與備用線路列表 (包含所有測試成功與失敗的備用線路)
+        # 生成第二階段：完整頻道與備用線路列表
         for key, ch in sorted_channels:
             sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
             for idx, url in enumerate(sorted_urls, 1):
