@@ -12,7 +12,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
 SOURCE_TARGET_GROUPS = {
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
-        "港澳台", "电影", "电视剧", "NewTV", "儿童频道", "电影频道"
+        "港澳台", "电影", "儿童频道"
     },
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_platforms.m3u": {
         "zonghe", "一起看", "原创", "原创IP"
@@ -27,10 +27,8 @@ GROUP_NAME_MAP = {
     "港澳台": "台灣",
     "电影": "電影",
     "电影频道": "電影",
-    "电视剧": "電視劇",
     "儿童频道": "卡通",
-    "NewTV": "NewTV",
-    # 將新群組統一對應至「其他」
+    # 將平台類新群組統一對應至「其他」
     "zonghe": "其他",
     "一起看": "其他",
     "原创": "其他",
@@ -46,7 +44,7 @@ PLATFORM_GROUP_ORDER = {
 }
 
 # 精選群組的指定輸出順序
-ORDERED_GROUPS = ["台灣", "電影", "電視劇", "卡通", "NewTV", "其他"]
+ORDERED_GROUPS = ["台灣", "電影", "卡通", "其他"]
 
 # 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
@@ -62,8 +60,8 @@ HEADERS = {
 }
 
 async def check_single_url(session, url, sem):
-    # 【豁免機制】4gtv 與 live.zbds.top 來源免受嚴格測速限制，直接判定為存活
-    if "4gtv" in url.lower() or "zbds.top" in url.lower():
+    # 【豁免機制】4gtv、zbds.top 與 live_platforms 來源免受嚴格測速限制，直接判定為存活
+    if any(k in url.lower() for k in ["4gtv", "zbds.top", "live_platforms"]):
         return url, True, 0.0
 
     async with sem:
@@ -198,7 +196,6 @@ def clean_filter_smart_merge():
                     current_raw_info = {
                         "logo_str": logo_str,
                         "tvg_id_str": tvg_id_str,
-                        "is_zbds": is_zbds,
                         "raw_group": raw_g_name
                     }
             elif line.startswith("http") and current_group and current_name:
@@ -210,7 +207,6 @@ def clean_filter_smart_merge():
                         "name": current_name,
                         "logo_str": current_raw_info.get("logo_str", ""),
                         "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
-                        "is_zbds": current_raw_info.get("is_zbds", False),
                         "urls": []
                     }
                 if line not in channels[key]["urls"]:
@@ -219,9 +215,10 @@ def clean_filter_smart_merge():
     all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
+    # 預處理階段：特定來源直接判定存活
     alive_urls_map = {}
     for u in all_urls:
-        if "4gtv" in u.lower() or "zbds.top" in u.lower():
+        if any(k in u.lower() for k in ["4gtv", "zbds.top", "live_platforms"]):
             alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
 
     scan_targets = [u for u in all_urls if u not in alive_urls_map]
@@ -238,7 +235,8 @@ def clean_filter_smart_merge():
     
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
-        return (1 if info["is_alive"] else 0, 1 if ("4gtv" in u.lower() or "zbds.top" in u.lower()) else 0, -info["delay"])
+        is_exempt = any(k in u.lower() for k in ["4gtv", "zbds.top", "live_platforms"])
+        return (1 if info["is_alive"] else 0, 1 if is_exempt else 0, -info["delay"])
 
     def channel_group_sort_key(item):
         ch = item[1]
@@ -249,19 +247,17 @@ def clean_filter_smart_merge():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
+    # 1. 輸出「精選」群組區塊（統一精簡邏輯）
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
-        
-        if ch.get("is_zbds", False):
-            best = sorted_urls[0] if sorted_urls else None
-        else:
-            best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
+        best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best:
             group_display = f"{ch['group']}_精選"
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
             output.append(best)
 
+    # 2. 輸出「完整」群組區塊
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         for idx, url in enumerate(sorted_urls, 1):
