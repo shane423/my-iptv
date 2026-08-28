@@ -67,56 +67,6 @@ https://ha.msbot.dpdns.org/4gtv_api.php?id=250
 https://ha.msbot.dpdns.org/4gtv_api.php?id=39
 #EXTINF:-1 tvg-name="影迷数位电影" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/影迷数位电影.png" group-title="台灣_精選",影迷数位电影
 https://ha.msbot.dpdns.org/4gtv_api.php?id=40
-#EXTINF:-1 tvg-name="无线星河" tvg-id="TVB星河" tvg-logo="https://tb.zbds.top/logo/无线星河.png" group-title="電影_精選",无线星河
-http://r.jdshipin.com/sXuuD
-#EXTINF:-1 tvg-name="靖天映画" tvg-id="靖天映画" tvg-logo="https://tb.zbds.top/logo/靖天映画.png" group-title="電影_精選",靖天映画
-http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34838
-#EXTINF:-1 tvg-name="CHC电影" tvg-id="CHC电影" tvg-logo="https://tb.zbds.top/logo/CHC电影.png" group-title="電影_精選",CHC电影
-http://183.237.95.108:9901/tsfile/live/1008_1.m3u8?key=txiptv&playlive=0&authid=0
-#EXTINF:-1 tvg-name="东阳影视生活" tvg-id="东阳影视生活" tvg-logo="https://tb.zbds.top/logo/东阳影视生活.png" group-title="電影_精選",东阳影视生活
-http://l.cztvcloud.com/channels/lantian/SXdongyang1/720p.m3u8
-#EXTINF:-1 tvg-name="人在囧途" tvg-id="人在囧途" tvg-logo="https://tb.zbds.top/logo/人在囧途.png" group-title="電影_精選",人在囧途
-https://vip.ffzy-play.com/20221018/1953_2d6ba500/index.m3u8
-#EXTINF:-1 tvg-name="人在囧途之泰囧" tvg-id="人在囧途之泰囧" tvg-logo="https://tb.zbds.top/logo/人在囧途之泰囧.png" group-title="電影_精選",人在囧途之泰囧
-https://vip.ffzy-play.com/20221018/1951_47e1adc8/index.m3u8
-#EXTINF:-1 tvg-name="人在囧途之港囧" tvg-id="人在囧途之港囧" tvg-logo="https://tb.zbds.top/logo/人在囧途之港囧.png" group-title="電影_精選",人在囧途之港囧
-https://vip.ffzy-play7.com/20230112/11082_fde1a94d/index.m3u8
-#EXTINF:-1 tvg-name="倩女幽魂人间道" tvg-id="倩女幽魂人间道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂人间道.png" group-title="電影_精選",倩女幽魂人间道
-http://jsmov2.a.yximgs.com/bs3/video-hls/5250634317044855747_hlsb.m3u8
-#EXTINF:-1 tvg-name="倩女幽魂妖魔道" tvg-id="倩女幽魂妖魔道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂妖魔道.png" group-title="電影_精選",倩女幽魂妖魔道
-http://jsmov2.a.yximgs.com/bs3/video-hls/5232901391302199073_hlsb.m3u8
-#EXTINF:-1 tvg-name="倩女幽魂道道道" tvg-id="倩女幽魂道道道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂道道道.png" group-title="電影_精選",倩女幽魂道道道
-http://jsmov2.a.yximgs.com/bs3/video-hls/5216294367991385255_hlsb.m3u8
-#EXTINF:-1 tvg-name="南宁影视娱乐" tvg-id="南宁影视娱乐" tvg-logo="https://tb.zbds.top/logo/南宁影视娱乐.png" group-title="電影_精選",南宁影视娱乐
-http://hls.nntv.cn/nnlive/YSYL_244.m3u8
-#EXTINF:-1 tvg-name="寒战" tvg-id="寒战" tvg-logo="https://tb.zbds.top/logo/寒战.png" group-title="電影_精選",寒战
-https://vip.ffzy-play6.com/20221019/157_bf0740ee/index.m3u8
-#EXTINF:-1 tvg-name="我不是药神" tvg-id="我不是药神" tvg-logo="https://tb.zbds.top/logo/我不是药神.png" group-title="電影_精選",我不是药神
-https://vip.ffzy-play1.com/20221018/478_c3afed66/index.m3u8
-#EXTINF:-1 tvg-name="拆弹专家1" tvg-id="拆弹专家1" tvg-logo="https://tb.zbds.top/logo/拆弹专家1.png" group-title="電影_精選",拆弹专家1
-https://vip.ffzy-online.com/20221015/719_80ff87c2/index.m3u8
-#EXTINF:-1 tvg-name="拆弹专家2" tvg-id="拆弹专家2" tvg-logo="https://tb.zbds.top/logo/拆弹专家2.png" group-title="電影_精選",拆弹专家2
-https://vip.ffzy-online.com/20221015/722_e32c42bc/index.m3u8
-#EXTINF:-1 tvg-name="浙江教科影视" tvg-id="浙江教科影视" tvg-logo="https://tb.zbds.top/logo/浙江教科影视.png" group-title="電影_精選",浙江教科影视
-https://ali-m-l.cztv.com/channels/lantian/channel004/1080p.m3u8
-#EXTINF:-1 tvg-name="让子弹飞" tvg-id="让子弹飞" tvg-logo="https://tb.zbds.top/logo/让子弹飞.png" group-title="電影_精選",让子弹飞
-https://vip.ffzy-play7.com/20230116/11563_b9f44814/index.m3u8
-#EXTINF:-1 tvg-name="龙祥电影" tvg-id="龙祥电影" tvg-logo="https://tb.zbds.top/logo/龙祥电影.png" group-title="電影_精選",龙祥电影
-http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34825
-#EXTINF:-1 tvg-name="龙门飞甲" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影_精選",龙门飞甲
-http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="浙江少儿" tvg-id="浙江少儿" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通_精選",浙江少儿
-https://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
-#EXTINF:-1 tvg-name="七龙珠" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通_精選",七龙珠
-https://live.metshop.top/huya/11601966
-#EXTINF:-1 tvg-name="中华小当家" tvg-id="中华小当家" tvg-logo="https://tb.zbds.top/logo/中华小当家.png" group-title="卡通_精選",中华小当家
-https://live.metshop.top/huya/11342413
-#EXTINF:-1 tvg-name="猫和老鼠" tvg-id="猫和老鼠" tvg-logo="https://tb.zbds.top/logo/猫和老鼠.png" group-title="卡通_精選",猫和老鼠
-https://live.metshop.top/huya/11352879
-#EXTINF:-1 tvg-name="福州少儿" tvg-id="福州少儿" tvg-logo="https://tb.zbds.top/logo/福州少儿.png" group-title="卡通_精選",福州少儿
-http://live.zohi.tv/video/s10001-fztv-4/index.m3u8
-#EXTINF:-1 tvg-name="黑龙江少儿" tvg-id="黑龙江少儿" tvg-logo="https://tb.zbds.top/logo/黑龙江少儿.png" group-title="卡通_精選",黑龙江少儿
-https://ls.qingting.fm/live/4972/64k.m3u8
 #EXTINF:-1 tvg-name="TVBS (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/TVBS.png" group-title="台灣",TVBS (1)
 https://ha.msbot.dpdns.org/4gtv_api.php?id=472
 #EXTINF:-1 tvg-name="TVBS (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/TVBS.png" group-title="台灣",TVBS (2)
@@ -547,64 +497,6 @@ https://vip.ffzy-play7.com/20230116/11563_b9f44814/index.m3u8
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34825
 #EXTINF:-1 tvg-name="龙门飞甲[卡頓/失效] (1)" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影",龙门飞甲[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="与凤行[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/与凤行.png" group-title="電視劇",与凤行[卡頓/失效] (1)
-http://159.75.85.63:35455/huya/26355866#http://cfss.cc/cdn/hy/26355866.m3u8
-#EXTINF:-1 tvg-name="开端[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/开端.png" group-title="電視劇",开端[卡頓/失效] (1)
-http://159.75.85.63:35455/huya/11342397#http://cfss.cc/cdn/hy/11342397.m3u8
-#EXTINF:-1 tvg-name="狂飙[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/狂飙.png" group-title="電視劇",狂飙[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1355142167#https://live.metshop.top/yy/1355142167
-#EXTINF:-1 tvg-name="神雕侠侣[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/神雕侠侣.png" group-title="電視劇",神雕侠侣[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1351762426#https://live.metshop.top/yy/1351762426#https://lunbo.freetv.top/yy/1351762426
-#EXTINF:-1 tvg-name="天龙八部[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/天龙八部.png" group-title="電視劇",天龙八部[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1351814644#https://live.metshop.top/yy/1351814644
-#EXTINF:-1 tvg-name="笑傲江湖[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/笑傲江湖.png" group-title="電視劇",笑傲江湖[卡頓/失效] (1)
-https://vd4.bdstatic.com/mda-ki3e6haxdv0x0tgr/v1-cae/mda-ki3e6haxdv0x0tgr.mp4?auth_key=1602763155-0-0-1dae92370a0b1d7d9dca0d3d9c748b00&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=8797_2&sle=1&sl=537&split=597343
-#EXTINF:-1 tvg-name="笑傲江湖[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/笑傲江湖.png" group-title="電視劇",笑傲江湖[卡頓/失效] (2)
-http://alist.xicp.fun:35455/yy/1354930909#https://live.metshop.top/yy/1354930909
-#EXTINF:-1 tvg-name="鹿鼎记[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/鹿鼎记.png" group-title="電視劇",鹿鼎记[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/28265277#https://live.metshop.top/huya/23865080#https://live.metshop.top/yy/28265277#https://lunbo.freetv.top/yy/1382736920
-#EXTINF:-1 tvg-name="寻秦记[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/寻秦记.png" group-title="電視劇",寻秦记[卡頓/失效] (1)
-http://2.itv.nctv.top:54321/yy/1382749900#http://www.xzbn.site:35455/yy/1382749900
-#EXTINF:-1 tvg-name="寻秦记[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/寻秦记.png" group-title="電視劇",寻秦记[卡頓/失效] (2)
-http://alist.xicp.fun:35455/yy/1382749900#,https://live.metshop.top/yy/1382749900
-#EXTINF:-1 tvg-name="封神榜[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/封神榜.png" group-title="電視劇",封神榜[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1356043643#https://live.metshop.top/yy/1356043643
-#EXTINF:-1 tvg-name="新白娘子传奇[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/新白娘子传奇.png" group-title="電視劇",新白娘子传奇[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1354490667#https://live.metshop.top/yy/1354490667#http://43.138.170.29:35455/yy/1354930969
-#EXTINF:-1 tvg-name="钟馗传说[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/钟馗传说.png" group-title="電視劇",钟馗传说[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382736839#https://live.metshop.top/yy/1382736839
-#EXTINF:-1 tvg-name="红楼梦[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/红楼梦.png" group-title="電視劇",红楼梦[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382745084#https://live.metshop.top/yy/1382745084#https://lunbo.freetv.top/yy/1382745084
-#EXTINF:-1 tvg-name="三国演义[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/三国演义.png" group-title="電視劇",三国演义[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1354936241#https://live.metshop.top/yy/1354936241
-#EXTINF:-1 tvg-name="宰相刘罗锅[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/宰相刘罗锅.png" group-title="電視劇",宰相刘罗锅[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1353892468#https://lunbo.freetv.top/yy/1353892468
-#EXTINF:-1 tvg-name="神医喜来乐[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/神医喜来乐.png" group-title="電視劇",神医喜来乐[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382714119#https://live.metshop.top/yy/1382714119#https://lunbo.freetv.top/yy/1382714119
-#EXTINF:-1 tvg-name="伪装者[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/伪装者.png" group-title="電視劇",伪装者[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382851593#https://lunbo.freetv.top/yy/1382851593
-#EXTINF:-1 tvg-name="雍正王朝[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/雍正王朝.png" group-title="電視劇",雍正王朝[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1356043620#https://live.metshop.top/huya/11342439#http://cfss.cc/cdn/hy/11342439.m3u8
-#EXTINF:-1 tvg-name="隋唐英雄传[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/隋唐英雄传.png" group-title="電視劇",隋唐英雄传[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1352475619#https://live.metshop.top/yy/1352475619
-#EXTINF:-1 tvg-name="宫心计[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/宫心计.png" group-title="電視劇",宫心计[卡頓/失效] (1)
-http://2.itv.nctv.top:54321/yy/1354933540#http://www.xzbn.site:35455/yy/1354933540
-#EXTINF:-1 tvg-name="宫心计[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/宫心计.png" group-title="電視劇",宫心计[卡頓/失效] (2)
-http://alist.xicp.fun:35455/yy/1354933540#http://43.138.170.29:35455/yy/1354933540
-#EXTINF:-1 tvg-name="上海滩[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/上海滩.png" group-title="電視劇",上海滩[卡頓/失效] (1)
-https://vd4.bdstatic.com/mda-keck5jhdaagebxkm/v1-cae/mda-keck5jhdaagebxkm.mp4?auth_key=1602762530-0-0-3e02c62e492e00c28c5557d41188d769&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=8797_2&sle=1&sl=288&split=391503
-#EXTINF:-1 tvg-name="上海滩[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/上海滩.png" group-title="電視劇",上海滩[卡頓/失效] (2)
-http://alist.xicp.fun:35455/yy/1382745184#https://live.metshop.top/yy/1382745184
-#EXTINF:-1 tvg-name="大时代[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/大时代.png" group-title="電視劇",大时代[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1354930891#https://live.metshop.top/yy/1354930891#https://lunbo.freetv.top/yy/1354930891
-#EXTINF:-1 tvg-name="正阳门下[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/正阳门下.png" group-title="電視劇",正阳门下[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1354931580#https://live.metshop.top/yy/1354931580
-#EXTINF:-1 tvg-name="济公游记[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/济公游记.png" group-title="電視劇",济公游记[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1355265814#http://43.138.170.29:35455/yy/1355265814
-#EXTINF:-1 tvg-name="康熙王朝[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/康熙王朝.png" group-title="電視劇",康熙王朝[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382736818#https://live.metshop.top/yy/1382736818
-#EXTINF:-1 tvg-name="纪晓岚[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纪晓岚.png" group-title="電視劇",纪晓岚[卡頓/失效] (1)
-http://alist.xicp.fun:35455/yy/1382781415#https://live.metshop.top/yy/1382781415
 #EXTINF:-1 tvg-name="浙江少儿[卡頓/失效] (1)" tvg-id="浙江少儿" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通",浙江少儿[卡頓/失效] (1)
 https://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
 #EXTINF:-1 tvg-name="七龙珠[卡頓/失效] (1)" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通",七龙珠[卡頓/失效] (1)
@@ -617,80 +509,6 @@ https://live.metshop.top/huya/11352879
 http://live.zohi.tv/video/s10001-fztv-4/index.m3u8
 #EXTINF:-1 tvg-name="黑龙江少儿[卡頓/失效] (1)" tvg-id="黑龙江少儿" tvg-logo="https://tb.zbds.top/logo/黑龙江少儿.png" group-title="卡通",黑龙江少儿[卡頓/失效] (1)
 https://ls.qingting.fm/live/4972/64k.m3u8
-#EXTINF:-1 tvg-name="东北热剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/东北热剧.png" group-title="NewTV",东北热剧[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225741/index.m3u8
-#EXTINF:-1 tvg-name="中国功夫[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中国功夫.png" group-title="NewTV",中国功夫[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225681/index.m3u8
-#EXTINF:-1 tvg-name="军事评论[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/军事评论.png" group-title="NewTV",军事评论[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225668/index.m3u8
-#EXTINF:-1 tvg-name="军旅剧场[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/军旅剧场.png" group-title="NewTV",军旅剧场[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225676/index.m3u8
-#EXTINF:-1 tvg-name="军旅剧场[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/军旅剧场.png" group-title="NewTV",军旅剧场[卡頓/失效] (2)
-http://kkk.888.3116598.xyz/api.php?n=tttt&id=0Ef35E&tk=FgM0vQMejxvG
-#EXTINF:-1 tvg-name="农业致富[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/农业致富.png" group-title="NewTV",农业致富[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225683/index.m3u8
-#EXTINF:-1 tvg-name="动作电影[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/动作电影.png" group-title="NewTV",动作电影[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225661/index.m3u8
-#EXTINF:-1 tvg-name="动作电影[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/动作电影.png" group-title="NewTV",动作电影[卡頓/失效] (2)
-https://iptv.catvod.com/live.php?id=NewTV%E5%8A%A8%E4%BD%9C%E7%94%B5%E5%BD%B1
-#EXTINF:-1 tvg-name="动作电影[卡頓/失效] (3)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/动作电影.png" group-title="NewTV",动作电影[卡頓/失效] (3)
-http://dassby.qqff.top:99/live/CHC动作电影/index.m3u8
-#EXTINF:-1 tvg-name="古装剧场[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/古装剧场.png" group-title="NewTV",古装剧场[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225663/index.m3u8
-#EXTINF:-1 tvg-name="古装剧场[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/古装剧场.png" group-title="NewTV",古装剧场[卡頓/失效] (2)
-http://kkk.888.3116598.xyz/api.php?n=tttt&id=tpn6wv&tk=FgM0vQMejxvG
-#EXTINF:-1 tvg-name="哒啵赛事[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/哒啵赛事.png" group-title="NewTV",哒啵赛事[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225675/index.m3u8
-#EXTINF:-1 tvg-name="家庭剧场[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/家庭剧场.png" group-title="NewTV",家庭剧场[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225677/index.m3u8
-#EXTINF:-1 tvg-name="怡伴健康[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/怡伴健康.png" group-title="NewTV",怡伴健康[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225673/index.m3u8
-#EXTINF:-1 tvg-name="惊悚悬疑[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/惊悚悬疑.png" group-title="NewTV",惊悚悬疑[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225665/index.m3u8
-#EXTINF:-1 tvg-name="明星大片[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/明星大片.png" group-title="NewTV",明星大片[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225664/index.m3u8
-#EXTINF:-1 tvg-name="欢乐剧场[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/欢乐剧场.png" group-title="NewTV",欢乐剧场[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225742/index.m3u8
-#EXTINF:-1 tvg-name="武搏世界[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/武搏世界.png" group-title="NewTV",武搏世界[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225680/index.m3u8
-#EXTINF:-1 tvg-name="海外剧场[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/海外剧场.png" group-title="NewTV",海外剧场[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225671/index.m3u8
-#EXTINF:-1 tvg-name="潮妈辣婆[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/潮妈辣婆.png" group-title="NewTV",潮妈辣婆[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225685/index.m3u8
-#EXTINF:-1 tvg-name="炫舞未来[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/炫舞未来.png" group-title="NewTV",炫舞未来[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225719/index.m3u8
-#EXTINF:-1 tvg-name="爱情喜剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/爱情喜剧.png" group-title="NewTV",爱情喜剧[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225669/index.m3u8
-#EXTINF:-1 tvg-name="精品体育[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/精品体育.png" group-title="NewTV",精品体育[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225674/index.m3u8
-#EXTINF:-1 tvg-name="精品大剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/精品大剧.png" group-title="NewTV",精品大剧[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225670/index.m3u8
-#EXTINF:-1 tvg-name="精品纪录[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/精品纪录.png" group-title="NewTV",精品纪录[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225672/index.m3u8
-#EXTINF:-1 tvg-name="精品萌宠[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/精品萌宠.png" group-title="NewTV",精品萌宠[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221226508/index.m3u8
-#EXTINF:-1 tvg-name="纪实科教[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纪实科教.png" group-title="NewTV",纪实科教[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225729/index.m3u8
-#EXTINF:-1 tvg-name="纪实科教[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纪实科教.png" group-title="NewTV",纪实科教[卡頓/失效] (2)
-http://120.76.248.139/live/bfgd/4200000113.m3u8
-#EXTINF:-1 tvg-name="超级体育[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/超级体育.png" group-title="NewTV",超级体育[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225715/index.m3u8
-#EXTINF:-1 tvg-name="超级电影[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/超级电影.png" group-title="NewTV",超级电影[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225717/index.m3u8
-#EXTINF:-1 tvg-name="超级电视剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/超级电视剧.png" group-title="NewTV",超级电视剧[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225716/index.m3u8
-#EXTINF:-1 tvg-name="超级综艺[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/超级综艺.png" group-title="NewTV",超级综艺[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225714/index.m3u8
-#EXTINF:-1 tvg-name="金牌综艺[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/金牌综艺.png" group-title="NewTV",金牌综艺[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225666/index.m3u8
-#EXTINF:-1 tvg-name="黑莓动画[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/黑莓动画.png" group-title="NewTV",黑莓动画[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225662/index.m3u8
-#EXTINF:-1 tvg-name="黑莓动画[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/黑莓动画.png" group-title="NewTV",黑莓动画[卡頓/失效] (2)
-http://kkk.888.3116598.xyz/api.php?n=tttt&id=pHqT4g&tk=FgM0vQMejxvG
-#EXTINF:-1 tvg-name="黑莓电影[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/黑莓电影.png" group-title="NewTV",黑莓电影[卡頓/失效] (1)
-http://ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225743/index.m3u8
-#EXTINF:-1 tvg-name="黑莓电影[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/黑莓电影.png" group-title="NewTV",黑莓电影[卡頓/失效] (2)
-https://epg.pw/stream/ffcb6572863f0745a7369fbd9d901f1dfd0ab8fab8bad8bebb4e01c90b303c47.m3u8
 #EXTINF:-1 tvg-name="贾贵队长真男神[卡頓/失效] (1)" tvg-logo="https://apic.douyucdn.cn/upload/avatar/default/02_big.jpg" group-title="其他",贾贵队长真男神[卡頓/失效] (1)
 https://live.ottiptv.cc/douyu/299854
 #EXTINF:-1 tvg-name="橙記Orange丶[卡頓/失效] (1)" tvg-logo="https://apic.douyucdn.cn/upload/avatar_v3/201907/42dbbbd5f6234e96ac54d84287f8c47e_big.jpg" group-title="其他",橙記Orange丶[卡頓/失效] (1)
