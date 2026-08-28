@@ -55,7 +55,7 @@ EXCLUDE_CHANNELS = {
 }
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
     'Accept': '*/*'
 }
 
@@ -196,7 +196,8 @@ def clean_filter_smart_merge():
                     current_raw_info = {
                         "logo_str": logo_str,
                         "tvg_id_str": tvg_id_str,
-                        "raw_group": raw_g_name
+                        "raw_group": raw_g_name,
+                        "src_url": src_url # 紀錄資料來源網址
                     }
             elif line.startswith("http") and current_group and current_name:
                 key = f"{current_group}___{current_name}"
@@ -207,6 +208,7 @@ def clean_filter_smart_merge():
                         "name": current_name,
                         "logo_str": current_raw_info.get("logo_str", ""),
                         "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
+                        "src_url": current_raw_info.get("src_url", ""),
                         "urls": []
                     }
                 if line not in channels[key]["urls"]:
@@ -250,12 +252,13 @@ def clean_filter_smart_merge():
     # 1. 輸出「精選」群組區塊
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        src = ch.get("src_url", "")
         
-        # 【修改點】只要是「電影」或「其他」群組，直接取第一條 URL，完全不做了存活判定
-        if ch["group"] in ["電影", "其他"]:
+        # 【修改點】只要來源是 live_platforms.m3u 或 zbds.top，免篩選直接拿第一條線路
+        if "live_platforms.m3u" in src or "live.zbds.top" in src:
             best = sorted_urls[0] if sorted_urls else None
         else:
-            # 其他群組（如台灣、卡通）依然進行存活檢查
+            # 只有來自 live_lite.m3u 的頻道才進行存活判定
             best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best:
