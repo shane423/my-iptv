@@ -9,7 +9,6 @@ from urllib.parse import urljoin
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
 SOURCE_TARGET_GROUPS = {
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
         "港澳台", "电影", "儿童频道"
@@ -22,20 +21,17 @@ SOURCE_TARGET_GROUPS = {
     }
 }
 
-# 映射至 Kodi 顯示的繁體群組名稱
 GROUP_NAME_MAP = {
     "港澳台": "台灣",
     "电影": "電影",
     "电影频道": "電影",
     "儿童频道": "卡通",
-    # 將平台類新群組統一對應至「其他」
     "zonghe": "其他",
     "一起看": "其他",
     "原创": "其他",
     "原创IP": "其他"
 }
 
-# 定義 live_platforms.m3u 子群組的排序權重 (zonghe 在最上面)
 PLATFORM_GROUP_ORDER = {
     "zonghe": 1,
     "一起看": 2,
@@ -43,10 +39,8 @@ PLATFORM_GROUP_ORDER = {
     "原创IP": 4
 }
 
-# 精選群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "卡通", "其他"]
 
-# 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -54,76 +48,84 @@ EXCLUDE_CHANNELS = {
     "星空卫视", "CHANNEL[V]", "VIUTV"
 }
 
+# 模擬標準播放器/瀏覽器的 Header
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': '*/*'
+    'Accept': '*/*',
+    'Connection': 'keep-alive'
 }
 
 async def check_single_url(session, url, sem):
-    # 【修改點 1】4gtv 與 zbds.top 仍享有豁免，live_platforms 已移除豁免以進行獨立嚴格篩選
     if any(k in url.lower() for k in ["4gtv", "zbds.top"]):
         return url, True, 0.0
 
-    # 判斷是否為 live_platforms 來源（獨立檢測邏輯）
     is_platform = "live_platforms" in url.lower()
 
     async with sem:
         start_time = time.time()
         try:
-            # platform 來源給予稍微寬裕的連線時間以測試持續性
-            req_timeout = 2.5 if is_platform else 1.5
-            timeout = aiohttp.ClientTimeout(total=req_timeout, connect=1.0)
+            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.2)
             
-            async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
+            # 給予更全面的 Header 避免 403 誤判
+            custom_headers = HEADERS.copy()
+            if is_platform:
+                custom_headers['Origin'] = 'https://raw.githubusercontent.com'
+                custom_headers['Referer'] = 'https://raw.githubusercontent.com/'
+
+            async with session.get(url, headers=custom_headers, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
                     return url, False, 999
 
                 content_type = res.headers.get('Content-Type', '').lower()
                 text = await res.text(errors='ignore')
 
-                if "#EXTM3U" in text or "mpegurl" in content_type:
-                    ts_urls = [urljoin(str(res.url), line.strip()) for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
-                    if not ts_urls:
+                if "#EXTM3U" in text or "mpegurl" in content_type or ".m3u8" in url.lower():
+                    # 抓取清單內的切片與子 M3U8
+                    lines = [line.strip() for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
+                    if not lines:
                         return url, False, 999
 
-                    first_target = ts_urls[0]
+                    first_target = urljoin(str(res.url), lines[0])
+
+                    # 若指向子 M3U8 清單
                     if ".m3u8" in first_target.lower():
-                        sub_timeout = aiohttp.ClientTimeout(total=1.2)
-                        async with session.get(first_target, headers=HEADERS, ssl=False, timeout=sub_timeout, allow_redirects=True) as sub_res:
+                        sub_timeout = aiohttp.ClientTimeout(total=2.0)
+                        async with session.get(first_target, headers=custom_headers, ssl=False, timeout=sub_timeout, allow_redirects=True) as sub_res:
                             if sub_res.status >= 400:
                                 return url, False, 999
                             sub_text = await sub_res.text(errors='ignore')
-                            ts_urls = [urljoin(str(sub_res.url), line.strip()) for line in sub_text.splitlines() if line.strip() and not line.strip().startswith("#")]
+                            lines = [urljoin(str(sub_res.url), line.strip()) for line in sub_text.splitlines() if line.strip() and not line.strip().startswith("#")]
 
-                    if not ts_urls:
+                    if not lines:
                         return url, False, 999
 
-                    # 【修改點 2】針對 live_platforms 進行獨立的「防止播放幾秒跳出」驗證
+                    # 針對 live_platforms 的檢測邏輯
                     if is_platform:
-                        # 平台頻道至少需要有 2 個以上的 TS 切片（確保不是一次性無效流）
-                        if len(ts_urls) < 2:
-                            return url, False, 999
+                        # 只要 HLS Playlist 正確解析出 2 個以上的 TS 切片，且回應碼正常，即認定存活
+                        # (解決因防盜鏈或 Session 限制導致第二段 TS 請求失敗的誤判問題)
+                        if len(lines) >= 2:
+                            return url, True, time.time() - start_time
                         
+                        # 備用點進度檢測
+                        ts_url = lines[0]
                         ts_timeout = aiohttp.ClientTimeout(total=1.5)
-                        # 測試讀取第二個 TS 片段，確保持續串流能力
-                        async with session.get(ts_urls[1], headers=HEADERS, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
+                        async with session.get(ts_url, headers=custom_headers, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
                             if ts_res.status < 400:
-                                chunk = await ts_res.content.read(4096)
-                                # 提高緩衝資料量門檻至 2KB，排除空包與幾秒跳出的偽存活串流
-                                if chunk and len(chunk) >= 2048:
+                                chunk = await ts_res.content.read(1024)
+                                if chunk and len(chunk) > 0:
                                     return url, True, time.time() - start_time
                     else:
-                        # 其他一般來源的標準檢測
-                        ts_timeout = aiohttp.ClientTimeout(total=1.0)
-                        async with session.get(ts_urls[0], headers=HEADERS, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
+                        # 普通來源檢測
+                        ts_url = lines[0]
+                        ts_timeout = aiohttp.ClientTimeout(total=1.5)
+                        async with session.get(ts_url, headers=custom_headers, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
                             if ts_res.status < 400:
                                 chunk = await ts_res.content.read(1024)
                                 if chunk and len(chunk) >= 512:
                                     return url, True, time.time() - start_time
                 else:
                     chunk = await res.content.read(1024)
-                    min_chunk = 2048 if is_platform else 512
-                    if chunk and len(chunk) >= min_chunk:
+                    if chunk and len(chunk) >= 512:
                         return url, True, time.time() - start_time
 
         except Exception:
@@ -132,13 +134,13 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    sem = asyncio.Semaphore(40)
+    sem = asyncio.Semaphore(30)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
         try:
-            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=25.0)
+            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=30.0)
             for res in results:
                 if isinstance(res, tuple):
                     u, is_alive, delay = res
@@ -239,7 +241,6 @@ def clean_filter_smart_merge():
     all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
-    # 預處理階段：僅 4gtv 與 zbds.top 判定存活，live_platforms 正式加入非同步掃描
     alive_urls_map = {}
     for u in all_urls:
         if any(k in u.lower() for k in ["4gtv", "zbds.top"]):
@@ -276,26 +277,30 @@ def clean_filter_smart_merge():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         src = ch.get("src_url", "")
         
-        # 【修改點 3】取消 live_platforms.m3u 的不篩選放行，只有 zbds.top 維持免篩選
         if "live.zbds.top" in src:
             best = sorted_urls[0] if sorted_urls else None
         else:
-            # live_platforms.m3u 與 live_lite.m3u 皆嚴格經過存活判定才獲選為精選
             best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best:
             group_display = f"{ch['group']}_精選"
             output.append(f'#EXTINF:-1 tvg-name="{ch["name"]}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{group_display}",{ch["name"]}')
+            # 針對平台類頻道增加播放器相容 Header 宣告，解決播幾秒退出的問題
+            if "live_platforms" in src:
+                output.append('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36')
             output.append(best)
 
     # 2. 輸出「完整」群組區塊
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        src = ch.get("src_url", "")
         for idx, url in enumerate(sorted_urls, 1):
             is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
             label = "" if is_alive else "[卡頓/失效]"
             name = f"{ch['name']}{label} ({idx})"
             output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
+            if "live_platforms" in src:
+                output.append('#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36')
             output.append(url)
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
