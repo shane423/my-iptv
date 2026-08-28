@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
 SOURCE_TARGET_GROUPS = {
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
         "港澳台", "电影", "儿童频道"
@@ -21,6 +22,7 @@ SOURCE_TARGET_GROUPS = {
     }
 }
 
+# 映射至 Kodi 顯示的繁體群組名稱
 GROUP_NAME_MAP = {
     "港澳台": "台灣",
     "电影": "電影",
@@ -32,6 +34,7 @@ GROUP_NAME_MAP = {
     "原创IP": "其他"
 }
 
+# 定義 live_platforms.m3u 子群組的排序權重 (zonghe 在最上面)
 PLATFORM_GROUP_ORDER = {
     "zonghe": 1,
     "一起看": 2,
@@ -39,8 +42,10 @@ PLATFORM_GROUP_ORDER = {
     "原创IP": 4
 }
 
+# 精選群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "卡通", "其他"]
 
+# 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -50,36 +55,57 @@ EXCLUDE_CHANNELS = {
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': '*/*'
+    'Accept': '*/*',
+    'Connection': 'keep-alive'
 }
 
+def check_ottiptv_url_sync(url):
+    """專門針對 live.ottiptv.cc (虎牙/斗魚代理) 的 302 重定向與串流檢測"""
+    try:
+        s = requests.Session()
+        req_headers = HEADERS.copy()
+        if "huya" in url:
+            req_headers['Referer'] = 'https://www.huya.com/'
+        elif "douyu" in url:
+            req_headers['Referer'] = 'https://www.douyu.com/'
+
+        # allow_redirects=True 跟隨 302 重定向
+        res = s.get(url, headers=req_headers, timeout=4.0, verify=False, stream=True, allow_redirects=True)
+        if res.status_code < 400:
+            # 只要導向成功並且能讀到串流數據，即判定存活
+            for chunk in res.iter_content(chunk_size=256):
+                if chunk and len(chunk) > 0:
+                    return url, True, 0.1
+                break
+    except Exception:
+        pass
+    return url, False, 999
+
 async def check_single_url(session, url, sem):
-    # 4gtv 與 zbds.top 保持免測速
+    # 4gtv 與 zbds.top 豁免測速
     if any(k in url.lower() for k in ["4gtv", "zbds.top"]):
         return url, True, 0.0
 
-    is_platform = "live_platforms" in url.lower()
+    # 如果是 ottiptv.cc 代理網址，交給專屬的重定向處理函數
+    if "ottiptv.cc" in url.lower() or "huya" in url.lower() or "douyu" in url.lower():
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, check_ottiptv_url_sync, url)
 
     async with sem:
         start_time = time.time()
         try:
-            # 針對 live_platforms 給予 4 秒超時，防止反應較慢的伺服器被誤判
-            timeout_sec = 4.0 if is_platform else 2.0
-            timeout = aiohttp.ClientTimeout(total=timeout_sec, connect=1.5)
-
+            timeout = aiohttp.ClientTimeout(total=3.0, connect=1.5)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
-                # 只要 HTTP 狀態碼不是 4xx 或 5xx，就算成功連線
                 if res.status >= 400:
                     return url, False, 999
 
-                # 平台類來源處理：只要 HTTP 200 能讀取到前 512 bytes 內容即視為存活
-                if is_platform:
-                    chunk = await res.content.read(512)
+                # 平台類（如 live_platforms）處理邏輯
+                if "live_platforms" in url.lower():
+                    chunk = await res.content.read(256)
                     if chunk and len(chunk) > 0:
                         return url, True, time.time() - start_time
                     return url, False, 999
 
-                # 其他一般來源檢測邏輯
                 text = await res.text(errors='ignore')
                 lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
 
@@ -100,7 +126,6 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    # 調降併發數至 20，避免對平台伺服器觸發 Rate Limit / 防刷機制
     sem = asyncio.Semaphore(20)
     alive_map = {}
     
@@ -257,6 +282,7 @@ def clean_filter_smart_merge():
     # 2. 輸出「完整」群組區塊
     for key, ch in sorted_channels:
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
+        src = ch.get("src_url", "")
         for idx, url in enumerate(sorted_urls, 1):
             is_alive = alive_urls_map.get(url, {}).get("is_alive", False)
             label = "" if is_alive else "[卡頓/失效]"
