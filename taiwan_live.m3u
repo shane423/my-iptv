@@ -67,8 +67,6 @@ https://ha.msbot.dpdns.org/4gtv_api.php?id=250
 https://ha.msbot.dpdns.org/4gtv_api.php?id=39
 #EXTINF:-1 tvg-name="影迷数位电影" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/影迷数位电影.png" group-title="台灣_精選",影迷数位电影
 https://ha.msbot.dpdns.org/4gtv_api.php?id=40
-#EXTINF:-1 tvg-name="无线星河" tvg-id="TVB星河" tvg-logo="https://tb.zbds.top/logo/无线星河.png" group-title="電影_精選",无线星河
-http://r.jdshipin.com/sXuuD
 #EXTINF:-1 tvg-name="CHC电影" tvg-id="CHC电影" tvg-logo="https://tb.zbds.top/logo/CHC电影.png" group-title="電影_精選",CHC电影
 http://183.237.95.108:9901/tsfile/live/1008_1.m3u8?key=txiptv&playlive=0&authid=0
 #EXTINF:-1 tvg-name="东阳影视生活" tvg-id="东阳影视生活" tvg-logo="https://tb.zbds.top/logo/东阳影视生活.png" group-title="電影_精選",东阳影视生活
@@ -79,30 +77,156 @@ https://vip.ffzy-play.com/20221018/1953_2d6ba500/index.m3u8
 https://vip.ffzy-play.com/20221018/1951_47e1adc8/index.m3u8
 #EXTINF:-1 tvg-name="人在囧途之港囧" tvg-id="人在囧途之港囧" tvg-logo="https://tb.zbds.top/logo/人在囧途之港囧.png" group-title="電影_精選",人在囧途之港囧
 https://vip.ffzy-play7.com/20230112/11082_fde1a94d/index.m3u8
+#EXTINF:-1 tvg-name="倚天屠龙记" tvg-id="倚天屠龙记" tvg-logo="https://tb.zbds.top/logo/倚天屠龙记.png" group-title="電影_精選",倚天屠龙记
+https://live.metshop.top/huya/23734246
 #EXTINF:-1 tvg-name="倩女幽魂人间道" tvg-id="倩女幽魂人间道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂人间道.png" group-title="電影_精選",倩女幽魂人间道
 http://jsmov2.a.yximgs.com/bs3/video-hls/5250634317044855747_hlsb.m3u8
 #EXTINF:-1 tvg-name="倩女幽魂妖魔道" tvg-id="倩女幽魂妖魔道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂妖魔道.png" group-title="電影_精選",倩女幽魂妖魔道
 http://jsmov2.a.yximgs.com/bs3/video-hls/5232901391302199073_hlsb.m3u8
 #EXTINF:-1 tvg-name="倩女幽魂道道道" tvg-id="倩女幽魂道道道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂道道道.png" group-title="電影_精選",倩女幽魂道道道
 http://jsmov2.a.yximgs.com/bs3/video-hls/5216294367991385255_hlsb.m3u8
+#EXTINF:-1 tvg-name="刑事侦缉档案" tvg-id="刑事侦缉档案" tvg-logo="https://tb.zbds.top/logo/刑事侦缉档案.png" group-title="電影_精選",刑事侦缉档案
+https://live.metshop.top/huya/29465856
+#EXTINF:-1 tvg-name="刘德华电影" tvg-id="刘德华电影" tvg-logo="https://tb.zbds.top/logo/刘德华电影.png" group-title="電影_精選",刘德华电影
+https://live.metshop.top/huya/11342424
+#EXTINF:-1 tvg-name="创世纪" tvg-id="创世纪" tvg-logo="https://tb.zbds.top/logo/创世纪.png" group-title="電影_精選",创世纪
+https://live.metshop.top/huya/29465852
+#EXTINF:-1 tvg-name="功夫电影" tvg-id="功夫电影" tvg-logo="https://tb.zbds.top/logo/功夫电影.png" group-title="電影_精選",功夫电影
+https://live.metshop.top/huya/11352941
 #EXTINF:-1 tvg-name="南宁影视娱乐" tvg-id="南宁影视娱乐" tvg-logo="https://tb.zbds.top/logo/南宁影视娱乐.png" group-title="電影_精選",南宁影视娱乐
 http://hls.nntv.cn/nnlive/YSYL_244.m3u8
+#EXTINF:-1 tvg-name="古天乐电影" tvg-id="古天乐电影" tvg-logo="https://tb.zbds.top/logo/古天乐电影.png" group-title="電影_精選",古天乐电影
+https://live.metshop.top/huya/29982675
+#EXTINF:-1 tvg-name="周星驰电影" tvg-id="周星驰电影" tvg-logo="https://tb.zbds.top/logo/周星驰电影.png" group-title="電影_精選",周星驰电影
+https://live.metshop.top/huya/11342412
+#EXTINF:-1 tvg-name="哈尔滨影视" tvg-id="哈尔滨影视" tvg-logo="https://tb.zbds.top/logo/哈尔滨影视.png" group-title="電影_精選",哈尔滨影视
+http://stream.hrbtv.net/yspd/sd/live.m3u8?zheild
+#EXTINF:-1 tvg-name="大唐双龙传" tvg-id="大唐双龙传" tvg-logo="https://tb.zbds.top/logo/大唐双龙传.png" group-title="電影_精選",大唐双龙传
+https://live.metshop.top/huya/29465850
+#EXTINF:-1 tvg-name="大时代" tvg-id="大时代" tvg-logo="https://tb.zbds.top/logo/大时代.png" group-title="電影_精選",大时代
+https://live.metshop.top/huya/23865161
+#EXTINF:-1 tvg-name="妙手仁心" tvg-id="妙手仁心" tvg-logo="https://tb.zbds.top/logo/妙手仁心.png" group-title="電影_精選",妙手仁心
+https://live.metshop.top/huya/29465853
+#EXTINF:-1 tvg-name="宇宙科幻合集" tvg-id="宇宙科幻合集" tvg-logo="https://tb.zbds.top/logo/宇宙科幻合集.png" group-title="電影_精選",宇宙科幻合集
+https://live.metshop.top/huya/11342428
 #EXTINF:-1 tvg-name="寒战" tvg-id="寒战" tvg-logo="https://tb.zbds.top/logo/寒战.png" group-title="電影_精選",寒战
 https://vip.ffzy-play6.com/20221019/157_bf0740ee/index.m3u8
+#EXTINF:-1 tvg-name="寻秦记" tvg-id="寻秦记" tvg-logo="https://tb.zbds.top/logo/寻秦记.png" group-title="電影_精選",寻秦记
+https://live.metshop.top/huya/29465848
+#EXTINF:-1 tvg-name="封神榜" tvg-id="封神榜" tvg-logo="https://tb.zbds.top/logo/封神榜.png" group-title="電影_精選",封神榜
+https://live.metshop.top/huya/29465849
+#EXTINF:-1 tvg-name="射雕英雄传" tvg-id="射雕英雄传" tvg-logo="https://tb.zbds.top/logo/射雕英雄传.png" group-title="電影_精選",射雕英雄传
+https://live.metshop.top/huya/23824164
+#EXTINF:-1 tvg-name="强森电影" tvg-id="强森电影" tvg-logo="https://tb.zbds.top/logo/强森电影.png" group-title="電影_精選",强森电影
+https://live.metshop.top/huya/21059581
+#EXTINF:-1 tvg-name="怪兽电影" tvg-id="怪兽电影" tvg-logo="https://tb.zbds.top/logo/怪兽电影.png" group-title="電影_精選",怪兽电影
+https://live.metshop.top/huya/21059577
+#EXTINF:-1 tvg-name="成龙电影" tvg-id="成龙电影" tvg-logo="https://tb.zbds.top/logo/成龙电影.png" group-title="電影_精選",成龙电影
+https://live.metshop.top/huya/11342386
 #EXTINF:-1 tvg-name="我不是药神" tvg-id="我不是药神" tvg-logo="https://tb.zbds.top/logo/我不是药神.png" group-title="電影_精選",我不是药神
 https://vip.ffzy-play1.com/20221018/478_c3afed66/index.m3u8
+#EXTINF:-1 tvg-name="战争电影" tvg-id="战争电影" tvg-logo="https://tb.zbds.top/logo/战争电影.png" group-title="電影_精選",战争电影
+https://live.metshop.top/huya/21059574
+#EXTINF:-1 tvg-name="扫黄先锋" tvg-id="扫黄先锋" tvg-logo="https://tb.zbds.top/logo/扫黄先锋.png" group-title="電影_精選",扫黄先锋
+https://live.metshop.top/huya/29465855
 #EXTINF:-1 tvg-name="拆弹专家1" tvg-id="拆弹专家1" tvg-logo="https://tb.zbds.top/logo/拆弹专家1.png" group-title="電影_精選",拆弹专家1
 https://vip.ffzy-online.com/20221015/719_80ff87c2/index.m3u8
 #EXTINF:-1 tvg-name="拆弹专家2" tvg-id="拆弹专家2" tvg-logo="https://tb.zbds.top/logo/拆弹专家2.png" group-title="電影_精選",拆弹专家2
 https://vip.ffzy-online.com/20221015/722_e32c42bc/index.m3u8
-#EXTINF:-1 tvg-name="浙江教科影视" tvg-id="浙江教科影视" tvg-logo="https://tb.zbds.top/logo/浙江教科影视.png" group-title="電影_精選",浙江教科影视
-https://ali-m-l.cztv.com/channels/lantian/channel004/1080p.m3u8
+#EXTINF:-1 tvg-name="无心法师" tvg-id="无心法师" tvg-logo="https://tb.zbds.top/logo/无心法师.png" group-title="電影_精選",无心法师
+https://live.metshop.top/huya/30080233
+#EXTINF:-1 tvg-name="李连杰电影" tvg-id="李连杰电影" tvg-logo="https://tb.zbds.top/logo/李连杰电影.png" group-title="電影_精選",李连杰电影
+https://live.metshop.top/huya/11342390
+#EXTINF:-1 tvg-name="林正英电影" tvg-id="林正英电影" tvg-logo="https://tb.zbds.top/logo/林正英电影.png" group-title="電影_精選",林正英电影
+https://live.metshop.top/huya/11342421
+#EXTINF:-1 tvg-name="枪战电影" tvg-id="枪战电影" tvg-logo="https://tb.zbds.top/logo/枪战电影.png" group-title="電影_精選",枪战电影
+https://live.metshop.top/huya/21059579
+#EXTINF:-1 tvg-name="楚汉骄雄" tvg-id="楚汉骄雄" tvg-logo="https://tb.zbds.top/logo/楚汉骄雄.png" group-title="電影_精選",楚汉骄雄
+https://live.metshop.top/huya/29465854
+#EXTINF:-1 tvg-name="武侠电影" tvg-id="武侠电影" tvg-logo="https://tb.zbds.top/logo/武侠电影.png" group-title="電影_精選",武侠电影
+https://live.metshop.top/huya/11342427
+#EXTINF:-1 tvg-name="沈腾电影" tvg-id="沈腾电影" tvg-logo="https://tb.zbds.top/logo/沈腾电影.png" group-title="電影_精選",沈腾电影
+https://live.metshop.top/huya/11601968
+#EXTINF:-1 tvg-name="法政先锋" tvg-id="法政先锋" tvg-logo="https://tb.zbds.top/logo/法政先锋.png" group-title="電影_精選",法政先锋
+https://live.metshop.top/huya/23863804
+#EXTINF:-1 tvg-name="洗冤录" tvg-id="洗冤录" tvg-logo="https://tb.zbds.top/logo/洗冤录.png" group-title="電影_精選",洗冤录
+https://live.metshop.top/huya/29465851
+#EXTINF:-1 tvg-name="活佛济公3" tvg-id="活佛济公3" tvg-logo="https://tb.zbds.top/logo/活佛济公3.png" group-title="電影_精選",活佛济公3
+https://live.metshop.top/huya/23903123
+#EXTINF:-1 tvg-name="浙江教科影视" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/浙江教科影视.png" group-title="電影_精選",浙江教科影视
+http://ali-vl.cztv.com/channels/lantian/channel004/360p.m3u8
+#EXTINF:-1 tvg-name="狄仁杰电影" tvg-id="狄仁杰电影" tvg-logo="https://tb.zbds.top/logo/狄仁杰电影.png" group-title="電影_精選",狄仁杰电影
+https://live.metshop.top/huya/30080229
+#EXTINF:-1 tvg-name="王晶电影" tvg-id="王晶电影" tvg-logo="https://tb.zbds.top/logo/王晶电影.png" group-title="電影_精選",王晶电影
+https://live.metshop.top/huya/11602058
+#EXTINF:-1 tvg-name="电影丧尸片" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影丧尸片.png" group-title="電影_精選",电影丧尸片
+http://live.metshop.top/huya/21059578?cdn=alicdn
+#EXTINF:-1 tvg-name="电影八点档" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影八点档.png" group-title="電影_精選",电影八点档
+http://live.metshop.top/huya/880261?cdn=alicdn
+#EXTINF:-1 tvg-name="电影刘德华" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影刘德华.png" group-title="電影_精選",电影刘德华
+http://live.metshop.top/huya/11342424?cdn=alicdn
+#EXTINF:-1 tvg-name="电影功夫片" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影功夫片.png" group-title="電影_精選",电影功夫片
+http://live.metshop.top/huya/11352941?cdn=alicdn
+#EXTINF:-1 tvg-name="电影动作电影" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影动作电影.png" group-title="電影_精選",电影动作电影
+http://live.metshop.top/huya/11602077?cdn=alicdn
+#EXTINF:-1 tvg-name="电影周星星" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影周星星.png" group-title="電影_精選",电影周星星
+http://live.metshop.top/huya/11336587?cdn=alicdn
+#EXTINF:-1 tvg-name="电影喜剧专场" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影喜剧专场.png" group-title="電影_精選",电影喜剧专场
+http://live.metshop.top/huya/11602044?cdn=alicdn
+#EXTINF:-1 tvg-name="电影嫣然影厅" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影嫣然影厅.png" group-title="電影_精選",电影嫣然影厅
+http://live.metshop.top/huya/11601977?cdn=alicdn
+#EXTINF:-1 tvg-name="电影战争片" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影战争片.png" group-title="電影_精選",电影战争片
+http://live.metshop.top/huya/21059574?cdn=alicdn
+#EXTINF:-1 tvg-name="电影搞笑喜剧" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影搞笑喜剧.png" group-title="電影_精選",电影搞笑喜剧
+http://live.metshop.top/huya/11342423?cdn=alicdn
+#EXTINF:-1 tvg-name="电影梁家辉" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影梁家辉.png" group-title="電影_精選",电影梁家辉
+http://live.metshop.top/huya/11342429?cdn=alicdn
+#EXTINF:-1 tvg-name="电影犯罪片" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影犯罪片.png" group-title="電影_精選",电影犯罪片
+http://live.metshop.top/huya/11352974?cdn=alicdn
+#EXTINF:-1 tvg-name="电影蜘蛛侠" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影蜘蛛侠.png" group-title="電影_精選",电影蜘蛛侠
+http://live.metshop.top/huya/21059599?cdn=alicdn
+#EXTINF:-1 tvg-name="电影谍战" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影谍战.png" group-title="電影_精選",电影谍战
+http://live.metshop.top/huya/21059585?cdn=alicdn
+#EXTINF:-1 tvg-name="电影谍战片" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影谍战片.png" group-title="電影_精選",电影谍战片
+http://live.metshop.top/huya/21059587?cdn=alicdn
+#EXTINF:-1 tvg-name="电影贺岁" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影贺岁.png" group-title="電影_精選",电影贺岁
+http://live.metshop.top/huya/11601971?cdn=alicdn
+#EXTINF:-1 tvg-name="电影高分动作" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影高分动作.png" group-title="電影_精選",电影高分动作
+http://live.metshop.top/huya/11352884?cdn=alicdn
+#EXTINF:-1 tvg-name="笑傲江湖" tvg-id="笑傲江湖" tvg-logo="https://tb.zbds.top/logo/笑傲江湖.png" group-title="電影_精選",笑傲江湖
+https://live.metshop.top/huya/23865142
+#EXTINF:-1 tvg-name="西游记2" tvg-id="西游记2" tvg-logo="https://tb.zbds.top/logo/西游记2.png" group-title="電影_精選",西游记2
+https://live.metshop.top/huya/29465859
 #EXTINF:-1 tvg-name="让子弹飞" tvg-id="让子弹飞" tvg-logo="https://tb.zbds.top/logo/让子弹飞.png" group-title="電影_精選",让子弹飞
 https://vip.ffzy-play7.com/20230116/11563_b9f44814/index.m3u8
+#EXTINF:-1 tvg-name="谍战电影" tvg-id="谍战电影" tvg-logo="https://tb.zbds.top/logo/谍战电影.png" group-title="電影_精選",谍战电影
+https://live.metshop.top/huya/21059585
+#EXTINF:-1 tvg-name="贺岁电影" tvg-id="贺岁电影" tvg-logo="https://tb.zbds.top/logo/贺岁电影.png" group-title="電影_精選",贺岁电影
+https://live.metshop.top/huya/11601986
+#EXTINF:-1 tvg-name="野蛮亲家" tvg-id="野蛮亲家" tvg-logo="https://tb.zbds.top/logo/野蛮亲家.png" group-title="電影_精選",野蛮亲家
+https://live.metshop.top/huya/23863796
+#EXTINF:-1 tvg-name="金庸武侠" tvg-id="金庸武侠" tvg-logo="https://tb.zbds.top/logo/金庸武侠.png" group-title="電影_精選",金庸武侠
+https://live.metshop.top/huya/11342435
+#EXTINF:-1 tvg-name="金枝欲孽" tvg-id="金枝欲孽" tvg-logo="https://tb.zbds.top/logo/金枝欲孽.png" group-title="電影_精選",金枝欲孽
+https://live.metshop.top/huya/29465847
+#EXTINF:-1 tvg-name="鉴证实录" tvg-id="鉴证实录" tvg-logo="https://tb.zbds.top/logo/鉴证实录.png" group-title="電影_精選",鉴证实录
+https://live.metshop.top/huya/23903183
+#EXTINF:-1 tvg-name="陀枪师姐" tvg-id="陀枪师姐" tvg-logo="https://tb.zbds.top/logo/陀枪师姐.png" group-title="電影_精選",陀枪师姐
+https://live.metshop.top/huya/29465857
+#EXTINF:-1 tvg-name="韩国电影1" tvg-id="韩国电影1" tvg-logo="https://tb.zbds.top/logo/韩国电影1.png" group-title="電影_精選",韩国电影1
+https://stream.ads.ottera.tv/playlist.m3u8?network_id=595
+#EXTINF:-1 tvg-name="韩国电影2" tvg-id="韩国电影2" tvg-logo="https://tb.zbds.top/logo/韩国电影2.png" group-title="電影_精選",韩国电影2
+https://stream.ads.ottera.tv/playlist.m3u8?network_id=743
+#EXTINF:-1 tvg-name="黄渤电影" tvg-id="黄渤电影" tvg-logo="https://tb.zbds.top/logo/黄渤电影.png" group-title="電影_精選",黄渤电影
+https://live.metshop.top/huya/11352876
 #EXTINF:-1 tvg-name="龙门飞甲" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影_精選",龙门飞甲
 http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="浙江少儿" tvg-id="浙江少儿" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通_精選",浙江少儿
-https://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
+#EXTINF:-1 tvg-name="卡酷少儿" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/卡酷少儿.png" group-title="卡通_精選",卡酷少儿
+http://111.59.139.82:11888/tsfile/live/1056_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="金鹰卡通" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通_精選",金鹰卡通
+http://221.7.175.154:8445/tsfile/live/1016_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="浙江少儿" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通_精選",浙江少儿
+http://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
 #EXTINF:-1 tvg-name="七龙珠" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通_精選",七龙珠
 https://live.metshop.top/huya/11601966
 #EXTINF:-1 tvg-name="中华小当家" tvg-id="中华小当家" tvg-logo="https://tb.zbds.top/logo/中华小当家.png" group-title="卡通_精選",中华小当家
@@ -111,6 +235,8 @@ https://live.metshop.top/huya/11342413
 https://live.metshop.top/huya/11352879
 #EXTINF:-1 tvg-name="福州少儿" tvg-id="福州少儿" tvg-logo="https://tb.zbds.top/logo/福州少儿.png" group-title="卡通_精選",福州少儿
 http://live.zohi.tv/video/s10001-fztv-4/index.m3u8
+#EXTINF:-1 tvg-name="韩国EBS少儿" tvg-id="韩国EBS少儿" tvg-logo="https://tb.zbds.top/logo/韩国EBS少儿.png" group-title="卡通_精選",韩国EBS少儿
+http://ebsonairios.ebs.co.kr/ebsutablet500k/tablet500k/playlist.m3u8
 #EXTINF:-1 tvg-name="黑龙江少儿" tvg-id="黑龙江少儿" tvg-logo="https://tb.zbds.top/logo/黑龙江少儿.png" group-title="卡通_精選",黑龙江少儿
 https://ls.qingting.fm/live/4972/64k.m3u8
 #EXTINF:-1 tvg-name="贾贵队长真男神" tvg-logo="https://apic.douyucdn.cn/upload/avatar/default/02_big.jpg" group-title="其他_精選",贾贵队长真男神
@@ -4359,8 +4485,6 @@ http://www.goodiptv.club/douyu/3928
 http://www.goodiptv.club/douyu/4549169
 #EXTINF:-1 tvg-name="热门港剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/热门港剧.png" group-title="電影",热门港剧[卡頓/失效] (1)
 http://www.goodiptv.club/douyu/5522351
-#EXTINF:-1 tvg-name="无线星河[卡頓/失效] (1)" tvg-id="TVB星河" tvg-logo="https://tb.zbds.top/logo/无线星河.png" group-title="電影",无线星河[卡頓/失效] (1)
-http://r.jdshipin.com/sXuuD
 #EXTINF:-1 tvg-name="CHC电影[卡頓/失效] (1)" tvg-id="CHC电影" tvg-logo="https://tb.zbds.top/logo/CHC电影.png" group-title="電影",CHC电影[卡頓/失效] (1)
 http://183.237.95.108:9901/tsfile/live/1008_1.m3u8?key=txiptv&playlive=0&authid=0
 #EXTINF:-1 tvg-name="东阳影视生活[卡頓/失效] (1)" tvg-id="东阳影视生活" tvg-logo="https://tb.zbds.top/logo/东阳影视生活.png" group-title="電影",东阳影视生活[卡頓/失效] (1)
@@ -4371,30 +4495,156 @@ https://vip.ffzy-play.com/20221018/1953_2d6ba500/index.m3u8
 https://vip.ffzy-play.com/20221018/1951_47e1adc8/index.m3u8
 #EXTINF:-1 tvg-name="人在囧途之港囧[卡頓/失效] (1)" tvg-id="人在囧途之港囧" tvg-logo="https://tb.zbds.top/logo/人在囧途之港囧.png" group-title="電影",人在囧途之港囧[卡頓/失效] (1)
 https://vip.ffzy-play7.com/20230112/11082_fde1a94d/index.m3u8
+#EXTINF:-1 tvg-name="倚天屠龙记[卡頓/失效] (1)" tvg-id="倚天屠龙记" tvg-logo="https://tb.zbds.top/logo/倚天屠龙记.png" group-title="電影",倚天屠龙记[卡頓/失效] (1)
+https://live.metshop.top/huya/23734246
 #EXTINF:-1 tvg-name="倩女幽魂人间道[卡頓/失效] (1)" tvg-id="倩女幽魂人间道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂人间道.png" group-title="電影",倩女幽魂人间道[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5250634317044855747_hlsb.m3u8
 #EXTINF:-1 tvg-name="倩女幽魂妖魔道[卡頓/失效] (1)" tvg-id="倩女幽魂妖魔道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂妖魔道.png" group-title="電影",倩女幽魂妖魔道[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5232901391302199073_hlsb.m3u8
 #EXTINF:-1 tvg-name="倩女幽魂道道道[卡頓/失效] (1)" tvg-id="倩女幽魂道道道" tvg-logo="https://tb.zbds.top/logo/倩女幽魂道道道.png" group-title="電影",倩女幽魂道道道[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5216294367991385255_hlsb.m3u8
+#EXTINF:-1 tvg-name="刑事侦缉档案[卡頓/失效] (1)" tvg-id="刑事侦缉档案" tvg-logo="https://tb.zbds.top/logo/刑事侦缉档案.png" group-title="電影",刑事侦缉档案[卡頓/失效] (1)
+https://live.metshop.top/huya/29465856
+#EXTINF:-1 tvg-name="刘德华电影[卡頓/失效] (1)" tvg-id="刘德华电影" tvg-logo="https://tb.zbds.top/logo/刘德华电影.png" group-title="電影",刘德华电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342424
+#EXTINF:-1 tvg-name="创世纪[卡頓/失效] (1)" tvg-id="创世纪" tvg-logo="https://tb.zbds.top/logo/创世纪.png" group-title="電影",创世纪[卡頓/失效] (1)
+https://live.metshop.top/huya/29465852
+#EXTINF:-1 tvg-name="功夫电影[卡頓/失效] (1)" tvg-id="功夫电影" tvg-logo="https://tb.zbds.top/logo/功夫电影.png" group-title="電影",功夫电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11352941
 #EXTINF:-1 tvg-name="南宁影视娱乐[卡頓/失效] (1)" tvg-id="南宁影视娱乐" tvg-logo="https://tb.zbds.top/logo/南宁影视娱乐.png" group-title="電影",南宁影视娱乐[卡頓/失效] (1)
 http://hls.nntv.cn/nnlive/YSYL_244.m3u8
+#EXTINF:-1 tvg-name="古天乐电影[卡頓/失效] (1)" tvg-id="古天乐电影" tvg-logo="https://tb.zbds.top/logo/古天乐电影.png" group-title="電影",古天乐电影[卡頓/失效] (1)
+https://live.metshop.top/huya/29982675
+#EXTINF:-1 tvg-name="周星驰电影[卡頓/失效] (1)" tvg-id="周星驰电影" tvg-logo="https://tb.zbds.top/logo/周星驰电影.png" group-title="電影",周星驰电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342412
+#EXTINF:-1 tvg-name="哈尔滨影视[卡頓/失效] (1)" tvg-id="哈尔滨影视" tvg-logo="https://tb.zbds.top/logo/哈尔滨影视.png" group-title="電影",哈尔滨影视[卡頓/失效] (1)
+http://stream.hrbtv.net/yspd/sd/live.m3u8?zheild
+#EXTINF:-1 tvg-name="大唐双龙传[卡頓/失效] (1)" tvg-id="大唐双龙传" tvg-logo="https://tb.zbds.top/logo/大唐双龙传.png" group-title="電影",大唐双龙传[卡頓/失效] (1)
+https://live.metshop.top/huya/29465850
+#EXTINF:-1 tvg-name="大时代[卡頓/失效] (1)" tvg-id="大时代" tvg-logo="https://tb.zbds.top/logo/大时代.png" group-title="電影",大时代[卡頓/失效] (1)
+https://live.metshop.top/huya/23865161
+#EXTINF:-1 tvg-name="妙手仁心[卡頓/失效] (1)" tvg-id="妙手仁心" tvg-logo="https://tb.zbds.top/logo/妙手仁心.png" group-title="電影",妙手仁心[卡頓/失效] (1)
+https://live.metshop.top/huya/29465853
+#EXTINF:-1 tvg-name="宇宙科幻合集[卡頓/失效] (1)" tvg-id="宇宙科幻合集" tvg-logo="https://tb.zbds.top/logo/宇宙科幻合集.png" group-title="電影",宇宙科幻合集[卡頓/失效] (1)
+https://live.metshop.top/huya/11342428
 #EXTINF:-1 tvg-name="寒战[卡頓/失效] (1)" tvg-id="寒战" tvg-logo="https://tb.zbds.top/logo/寒战.png" group-title="電影",寒战[卡頓/失效] (1)
 https://vip.ffzy-play6.com/20221019/157_bf0740ee/index.m3u8
+#EXTINF:-1 tvg-name="寻秦记[卡頓/失效] (1)" tvg-id="寻秦记" tvg-logo="https://tb.zbds.top/logo/寻秦记.png" group-title="電影",寻秦记[卡頓/失效] (1)
+https://live.metshop.top/huya/29465848
+#EXTINF:-1 tvg-name="封神榜[卡頓/失效] (1)" tvg-id="封神榜" tvg-logo="https://tb.zbds.top/logo/封神榜.png" group-title="電影",封神榜[卡頓/失效] (1)
+https://live.metshop.top/huya/29465849
+#EXTINF:-1 tvg-name="射雕英雄传[卡頓/失效] (1)" tvg-id="射雕英雄传" tvg-logo="https://tb.zbds.top/logo/射雕英雄传.png" group-title="電影",射雕英雄传[卡頓/失效] (1)
+https://live.metshop.top/huya/23824164
+#EXTINF:-1 tvg-name="强森电影[卡頓/失效] (1)" tvg-id="强森电影" tvg-logo="https://tb.zbds.top/logo/强森电影.png" group-title="電影",强森电影[卡頓/失效] (1)
+https://live.metshop.top/huya/21059581
+#EXTINF:-1 tvg-name="怪兽电影[卡頓/失效] (1)" tvg-id="怪兽电影" tvg-logo="https://tb.zbds.top/logo/怪兽电影.png" group-title="電影",怪兽电影[卡頓/失效] (1)
+https://live.metshop.top/huya/21059577
+#EXTINF:-1 tvg-name="成龙电影[卡頓/失效] (1)" tvg-id="成龙电影" tvg-logo="https://tb.zbds.top/logo/成龙电影.png" group-title="電影",成龙电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342386
 #EXTINF:-1 tvg-name="我不是药神[卡頓/失效] (1)" tvg-id="我不是药神" tvg-logo="https://tb.zbds.top/logo/我不是药神.png" group-title="電影",我不是药神[卡頓/失效] (1)
 https://vip.ffzy-play1.com/20221018/478_c3afed66/index.m3u8
+#EXTINF:-1 tvg-name="战争电影[卡頓/失效] (1)" tvg-id="战争电影" tvg-logo="https://tb.zbds.top/logo/战争电影.png" group-title="電影",战争电影[卡頓/失效] (1)
+https://live.metshop.top/huya/21059574
+#EXTINF:-1 tvg-name="扫黄先锋[卡頓/失效] (1)" tvg-id="扫黄先锋" tvg-logo="https://tb.zbds.top/logo/扫黄先锋.png" group-title="電影",扫黄先锋[卡頓/失效] (1)
+https://live.metshop.top/huya/29465855
 #EXTINF:-1 tvg-name="拆弹专家1[卡頓/失效] (1)" tvg-id="拆弹专家1" tvg-logo="https://tb.zbds.top/logo/拆弹专家1.png" group-title="電影",拆弹专家1[卡頓/失效] (1)
 https://vip.ffzy-online.com/20221015/719_80ff87c2/index.m3u8
 #EXTINF:-1 tvg-name="拆弹专家2[卡頓/失效] (1)" tvg-id="拆弹专家2" tvg-logo="https://tb.zbds.top/logo/拆弹专家2.png" group-title="電影",拆弹专家2[卡頓/失效] (1)
 https://vip.ffzy-online.com/20221015/722_e32c42bc/index.m3u8
-#EXTINF:-1 tvg-name="浙江教科影视[卡頓/失效] (1)" tvg-id="浙江教科影视" tvg-logo="https://tb.zbds.top/logo/浙江教科影视.png" group-title="電影",浙江教科影视[卡頓/失效] (1)
-https://ali-m-l.cztv.com/channels/lantian/channel004/1080p.m3u8
+#EXTINF:-1 tvg-name="无心法师[卡頓/失效] (1)" tvg-id="无心法师" tvg-logo="https://tb.zbds.top/logo/无心法师.png" group-title="電影",无心法师[卡頓/失效] (1)
+https://live.metshop.top/huya/30080233
+#EXTINF:-1 tvg-name="李连杰电影[卡頓/失效] (1)" tvg-id="李连杰电影" tvg-logo="https://tb.zbds.top/logo/李连杰电影.png" group-title="電影",李连杰电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342390
+#EXTINF:-1 tvg-name="林正英电影[卡頓/失效] (1)" tvg-id="林正英电影" tvg-logo="https://tb.zbds.top/logo/林正英电影.png" group-title="電影",林正英电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342421
+#EXTINF:-1 tvg-name="枪战电影[卡頓/失效] (1)" tvg-id="枪战电影" tvg-logo="https://tb.zbds.top/logo/枪战电影.png" group-title="電影",枪战电影[卡頓/失效] (1)
+https://live.metshop.top/huya/21059579
+#EXTINF:-1 tvg-name="楚汉骄雄[卡頓/失效] (1)" tvg-id="楚汉骄雄" tvg-logo="https://tb.zbds.top/logo/楚汉骄雄.png" group-title="電影",楚汉骄雄[卡頓/失效] (1)
+https://live.metshop.top/huya/29465854
+#EXTINF:-1 tvg-name="武侠电影[卡頓/失效] (1)" tvg-id="武侠电影" tvg-logo="https://tb.zbds.top/logo/武侠电影.png" group-title="電影",武侠电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11342427
+#EXTINF:-1 tvg-name="沈腾电影[卡頓/失效] (1)" tvg-id="沈腾电影" tvg-logo="https://tb.zbds.top/logo/沈腾电影.png" group-title="電影",沈腾电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11601968
+#EXTINF:-1 tvg-name="法政先锋[卡頓/失效] (1)" tvg-id="法政先锋" tvg-logo="https://tb.zbds.top/logo/法政先锋.png" group-title="電影",法政先锋[卡頓/失效] (1)
+https://live.metshop.top/huya/23863804
+#EXTINF:-1 tvg-name="洗冤录[卡頓/失效] (1)" tvg-id="洗冤录" tvg-logo="https://tb.zbds.top/logo/洗冤录.png" group-title="電影",洗冤录[卡頓/失效] (1)
+https://live.metshop.top/huya/29465851
+#EXTINF:-1 tvg-name="活佛济公3[卡頓/失效] (1)" tvg-id="活佛济公3" tvg-logo="https://tb.zbds.top/logo/活佛济公3.png" group-title="電影",活佛济公3[卡頓/失效] (1)
+https://live.metshop.top/huya/23903123
+#EXTINF:-1 tvg-name="浙江教科影视[卡頓/失效] (1)" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/浙江教科影视.png" group-title="電影",浙江教科影视[卡頓/失效] (1)
+http://ali-vl.cztv.com/channels/lantian/channel004/360p.m3u8
+#EXTINF:-1 tvg-name="狄仁杰电影[卡頓/失效] (1)" tvg-id="狄仁杰电影" tvg-logo="https://tb.zbds.top/logo/狄仁杰电影.png" group-title="電影",狄仁杰电影[卡頓/失效] (1)
+https://live.metshop.top/huya/30080229
+#EXTINF:-1 tvg-name="王晶电影[卡頓/失效] (1)" tvg-id="王晶电影" tvg-logo="https://tb.zbds.top/logo/王晶电影.png" group-title="電影",王晶电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11602058
+#EXTINF:-1 tvg-name="电影丧尸片[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影丧尸片.png" group-title="電影",电影丧尸片[卡頓/失效] (1)
+http://live.metshop.top/huya/21059578?cdn=alicdn
+#EXTINF:-1 tvg-name="电影八点档[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影八点档.png" group-title="電影",电影八点档[卡頓/失效] (1)
+http://live.metshop.top/huya/880261?cdn=alicdn
+#EXTINF:-1 tvg-name="电影刘德华[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影刘德华.png" group-title="電影",电影刘德华[卡頓/失效] (1)
+http://live.metshop.top/huya/11342424?cdn=alicdn
+#EXTINF:-1 tvg-name="电影功夫片[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影功夫片.png" group-title="電影",电影功夫片[卡頓/失效] (1)
+http://live.metshop.top/huya/11352941?cdn=alicdn
+#EXTINF:-1 tvg-name="电影动作电影[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影动作电影.png" group-title="電影",电影动作电影[卡頓/失效] (1)
+http://live.metshop.top/huya/11602077?cdn=alicdn
+#EXTINF:-1 tvg-name="电影周星星[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影周星星.png" group-title="電影",电影周星星[卡頓/失效] (1)
+http://live.metshop.top/huya/11336587?cdn=alicdn
+#EXTINF:-1 tvg-name="电影喜剧专场[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影喜剧专场.png" group-title="電影",电影喜剧专场[卡頓/失效] (1)
+http://live.metshop.top/huya/11602044?cdn=alicdn
+#EXTINF:-1 tvg-name="电影嫣然影厅[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影嫣然影厅.png" group-title="電影",电影嫣然影厅[卡頓/失效] (1)
+http://live.metshop.top/huya/11601977?cdn=alicdn
+#EXTINF:-1 tvg-name="电影战争片[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影战争片.png" group-title="電影",电影战争片[卡頓/失效] (1)
+http://live.metshop.top/huya/21059574?cdn=alicdn
+#EXTINF:-1 tvg-name="电影搞笑喜剧[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影搞笑喜剧.png" group-title="電影",电影搞笑喜剧[卡頓/失效] (1)
+http://live.metshop.top/huya/11342423?cdn=alicdn
+#EXTINF:-1 tvg-name="电影梁家辉[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影梁家辉.png" group-title="電影",电影梁家辉[卡頓/失效] (1)
+http://live.metshop.top/huya/11342429?cdn=alicdn
+#EXTINF:-1 tvg-name="电影犯罪片[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影犯罪片.png" group-title="電影",电影犯罪片[卡頓/失效] (1)
+http://live.metshop.top/huya/11352974?cdn=alicdn
+#EXTINF:-1 tvg-name="电影蜘蛛侠[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影蜘蛛侠.png" group-title="電影",电影蜘蛛侠[卡頓/失效] (1)
+http://live.metshop.top/huya/21059599?cdn=alicdn
+#EXTINF:-1 tvg-name="电影谍战[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影谍战.png" group-title="電影",电影谍战[卡頓/失效] (1)
+http://live.metshop.top/huya/21059585?cdn=alicdn
+#EXTINF:-1 tvg-name="电影谍战片[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影谍战片.png" group-title="電影",电影谍战片[卡頓/失效] (1)
+http://live.metshop.top/huya/21059587?cdn=alicdn
+#EXTINF:-1 tvg-name="电影贺岁[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影贺岁.png" group-title="電影",电影贺岁[卡頓/失效] (1)
+http://live.metshop.top/huya/11601971?cdn=alicdn
+#EXTINF:-1 tvg-name="电影高分动作[卡頓/失效] (1)" tvg-id="1" tvg-logo="https://tb.zbds.top/logo/电影高分动作.png" group-title="電影",电影高分动作[卡頓/失效] (1)
+http://live.metshop.top/huya/11352884?cdn=alicdn
+#EXTINF:-1 tvg-name="笑傲江湖[卡頓/失效] (1)" tvg-id="笑傲江湖" tvg-logo="https://tb.zbds.top/logo/笑傲江湖.png" group-title="電影",笑傲江湖[卡頓/失效] (1)
+https://live.metshop.top/huya/23865142
+#EXTINF:-1 tvg-name="西游记2[卡頓/失效] (1)" tvg-id="西游记2" tvg-logo="https://tb.zbds.top/logo/西游记2.png" group-title="電影",西游记2[卡頓/失效] (1)
+https://live.metshop.top/huya/29465859
 #EXTINF:-1 tvg-name="让子弹飞[卡頓/失效] (1)" tvg-id="让子弹飞" tvg-logo="https://tb.zbds.top/logo/让子弹飞.png" group-title="電影",让子弹飞[卡頓/失效] (1)
 https://vip.ffzy-play7.com/20230116/11563_b9f44814/index.m3u8
+#EXTINF:-1 tvg-name="谍战电影[卡頓/失效] (1)" tvg-id="谍战电影" tvg-logo="https://tb.zbds.top/logo/谍战电影.png" group-title="電影",谍战电影[卡頓/失效] (1)
+https://live.metshop.top/huya/21059585
+#EXTINF:-1 tvg-name="贺岁电影[卡頓/失效] (1)" tvg-id="贺岁电影" tvg-logo="https://tb.zbds.top/logo/贺岁电影.png" group-title="電影",贺岁电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11601986
+#EXTINF:-1 tvg-name="野蛮亲家[卡頓/失效] (1)" tvg-id="野蛮亲家" tvg-logo="https://tb.zbds.top/logo/野蛮亲家.png" group-title="電影",野蛮亲家[卡頓/失效] (1)
+https://live.metshop.top/huya/23863796
+#EXTINF:-1 tvg-name="金庸武侠[卡頓/失效] (1)" tvg-id="金庸武侠" tvg-logo="https://tb.zbds.top/logo/金庸武侠.png" group-title="電影",金庸武侠[卡頓/失效] (1)
+https://live.metshop.top/huya/11342435
+#EXTINF:-1 tvg-name="金枝欲孽[卡頓/失效] (1)" tvg-id="金枝欲孽" tvg-logo="https://tb.zbds.top/logo/金枝欲孽.png" group-title="電影",金枝欲孽[卡頓/失效] (1)
+https://live.metshop.top/huya/29465847
+#EXTINF:-1 tvg-name="鉴证实录[卡頓/失效] (1)" tvg-id="鉴证实录" tvg-logo="https://tb.zbds.top/logo/鉴证实录.png" group-title="電影",鉴证实录[卡頓/失效] (1)
+https://live.metshop.top/huya/23903183
+#EXTINF:-1 tvg-name="陀枪师姐[卡頓/失效] (1)" tvg-id="陀枪师姐" tvg-logo="https://tb.zbds.top/logo/陀枪师姐.png" group-title="電影",陀枪师姐[卡頓/失效] (1)
+https://live.metshop.top/huya/29465857
+#EXTINF:-1 tvg-name="韩国电影1[卡頓/失效] (1)" tvg-id="韩国电影1" tvg-logo="https://tb.zbds.top/logo/韩国电影1.png" group-title="電影",韩国电影1[卡頓/失效] (1)
+https://stream.ads.ottera.tv/playlist.m3u8?network_id=595
+#EXTINF:-1 tvg-name="韩国电影2[卡頓/失效] (1)" tvg-id="韩国电影2" tvg-logo="https://tb.zbds.top/logo/韩国电影2.png" group-title="電影",韩国电影2[卡頓/失效] (1)
+https://stream.ads.ottera.tv/playlist.m3u8?network_id=743
+#EXTINF:-1 tvg-name="黄渤电影[卡頓/失效] (1)" tvg-id="黄渤电影" tvg-logo="https://tb.zbds.top/logo/黄渤电影.png" group-title="電影",黄渤电影[卡頓/失效] (1)
+https://live.metshop.top/huya/11352876
 #EXTINF:-1 tvg-name="龙门飞甲[卡頓/失效] (1)" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影",龙门飞甲[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="浙江少儿[卡頓/失效] (1)" tvg-id="浙江少儿" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通",浙江少儿[卡頓/失效] (1)
-https://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
+#EXTINF:-1 tvg-name="卡酷少儿[卡頓/失效] (1)" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/卡酷少儿.png" group-title="卡通",卡酷少儿[卡頓/失效] (1)
+http://111.59.139.82:11888/tsfile/live/1056_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="金鹰卡通[卡頓/失效] (1)" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通",金鹰卡通[卡頓/失效] (1)
+http://221.7.175.154:8445/tsfile/live/1016_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="浙江少儿[卡頓/失效] (1)" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通",浙江少儿[卡頓/失效] (1)
+http://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
 #EXTINF:-1 tvg-name="七龙珠[卡頓/失效] (1)" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通",七龙珠[卡頓/失效] (1)
 https://live.metshop.top/huya/11601966
 #EXTINF:-1 tvg-name="中华小当家[卡頓/失效] (1)" tvg-id="中华小当家" tvg-logo="https://tb.zbds.top/logo/中华小当家.png" group-title="卡通",中华小当家[卡頓/失效] (1)
@@ -4403,6 +4653,8 @@ https://live.metshop.top/huya/11342413
 https://live.metshop.top/huya/11352879
 #EXTINF:-1 tvg-name="福州少儿[卡頓/失效] (1)" tvg-id="福州少儿" tvg-logo="https://tb.zbds.top/logo/福州少儿.png" group-title="卡通",福州少儿[卡頓/失效] (1)
 http://live.zohi.tv/video/s10001-fztv-4/index.m3u8
+#EXTINF:-1 tvg-name="韩国EBS少儿[卡頓/失效] (1)" tvg-id="韩国EBS少儿" tvg-logo="https://tb.zbds.top/logo/韩国EBS少儿.png" group-title="卡通",韩国EBS少儿[卡頓/失效] (1)
+http://ebsonairios.ebs.co.kr/ebsutablet500k/tablet500k/playlist.m3u8
 #EXTINF:-1 tvg-name="黑龙江少儿[卡頓/失效] (1)" tvg-id="黑龙江少儿" tvg-logo="https://tb.zbds.top/logo/黑龙江少儿.png" group-title="卡通",黑龙江少儿[卡頓/失效] (1)
 https://ls.qingting.fm/live/4972/64k.m3u8
 #EXTINF:-1 tvg-name="贾贵队长真男神[卡頓/失效] (1)" tvg-logo="https://apic.douyucdn.cn/upload/avatar/default/02_big.jpg" group-title="其他",贾贵队长真男神[卡頓/失效] (1)
