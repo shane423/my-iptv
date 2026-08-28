@@ -28,12 +28,14 @@ GROUP_NAME_MAP = {
     "电影": "電影",
     "电影频道": "電影",
     "儿童频道": "卡通",
+    # 將平台類新群組統一對應至「其他」
     "zonghe": "其他",
     "一起看": "其他",
     "原创": "其他",
     "原创IP": "其他"
 }
 
+# 定義 live_platforms.m3u 子群組的排序權重 (zonghe 在最上面)
 PLATFORM_GROUP_ORDER = {
     "zonghe": 1,
     "一起看": 2,
@@ -41,8 +43,10 @@ PLATFORM_GROUP_ORDER = {
     "原创IP": 4
 }
 
+# 精選群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "卡通", "其他"]
 
+# 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
@@ -50,23 +54,20 @@ EXCLUDE_CHANNELS = {
     "星空卫视", "CHANNEL[V]", "VIUTV"
 }
 
-# 替換為 Android IPTV Player / Kodi 的標頭，提高平台流通過率
 HEADERS = {
-    'User-Agent': 'okhttp/4.9.0 IPTVPlayer/1.0 (Linux; Android 10)',
-    'Accept': '*/*',
-    'Connection': 'keep-alive'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': '*/*'
 }
 
 async def check_single_url(session, url, sem):
-    # 豁免清單
-    if any(k in url.lower() for k in ["4gtv", "zbds.top"]):
+    # 【豁免機制】4gtv、zbds.top 與 live_platforms 來源免受嚴格測速限制，直接判定為存活
+    if any(k in url.lower() for k in ["4gtv", "zbds.top", "live_platforms"]):
         return url, True, 0.0
 
     async with sem:
         start_time = time.time()
         try:
-            # 延長整體連線超時時間至 6 秒
-            timeout = aiohttp.ClientTimeout(total=6.0, connect=3.0)
+            timeout = aiohttp.ClientTimeout(total=1.5, connect=0.8)
             async with session.get(url, headers=HEADERS, ssl=False, timeout=timeout, allow_redirects=True) as res:
                 if res.status >= 400:
                     return url, False, 999
@@ -74,16 +75,14 @@ async def check_single_url(session, url, sem):
                 content_type = res.headers.get('Content-Type', '').lower()
                 text = await res.text(errors='ignore')
 
-                # M3U8 解析處理
-                if "#EXTM3U" in text or "mpegurl" in content_type or ".m3u8" in url.lower():
+                if "#EXTM3U" in text or "mpegurl" in content_type:
                     ts_urls = [urljoin(str(res.url), line.strip()) for line in text.splitlines() if line.strip() and not line.strip().startswith("#")]
                     if not ts_urls:
                         return url, False, 999
 
                     first_target = ts_urls[0]
-                    # 多碼率巢狀清單處理
                     if ".m3u8" in first_target.lower():
-                        sub_timeout = aiohttp.ClientTimeout(total=3.0)
+                        sub_timeout = aiohttp.ClientTimeout(total=1.0)
                         async with session.get(first_target, headers=HEADERS, ssl=False, timeout=sub_timeout, allow_redirects=True) as sub_res:
                             if sub_res.status >= 400:
                                 return url, False, 999
@@ -93,43 +92,15 @@ async def check_single_url(session, url, sem):
                     if not ts_urls:
                         return url, False, 999
 
-                    # 切片下載測試 (門檻調低)
-                    ts_timeout = aiohttp.ClientTimeout(total=4.0)
-                    downloaded_bytes = 0
-                    test_start = time.time()
-                    
-                    for ts_url in ts_urls[:2]:
-                        try:
-                            async with session.get(ts_url, headers=HEADERS, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
-                                if ts_res.status >= 400:
-                                    continue
-                                
-                                async for chunk in ts_res.content.iter_chunked(1024):
-                                    downloaded_bytes += len(chunk)
-                                    # 只要能順暢讀取超過 16KB 數據，即可認定該串流有效
-                                    if downloaded_bytes >= 16 * 1024:
-                                        break
-                                    if time.time() - test_start > 3.5:
-                                        break
-                        except Exception:
-                            continue
-
-                    # 只要取得超過 16KB 就判定為可用，不輕易排除頻道
-                    if downloaded_bytes >= 16 * 1024:
-                        return url, True, time.time() - start_time
-                    else:
-                        return url, False, 999
-
+                    ts_timeout = aiohttp.ClientTimeout(total=1.0)
+                    async with session.get(ts_urls[0], headers=HEADERS, ssl=False, timeout=ts_timeout, allow_redirects=True) as ts_res:
+                        if ts_res.status < 400:
+                            chunk = await ts_res.content.read(1024)
+                            if chunk and len(chunk) >= 512:
+                                return url, True, time.time() - start_time
                 else:
-                    # 一般 Direct Stream 直接測試
-                    downloaded_bytes = 0
-                    test_start = time.time()
-                    async for chunk in res.content.iter_chunked(1024):
-                        downloaded_bytes += len(chunk)
-                        if downloaded_bytes >= 16 * 1024 or (time.time() - test_start > 3.5):
-                            break
-                    
-                    if downloaded_bytes >= 16 * 1024:
+                    chunk = await res.content.read(1024)
+                    if chunk and len(chunk) >= 512:
                         return url, True, time.time() - start_time
 
         except Exception:
@@ -138,15 +109,13 @@ async def check_single_url(session, url, sem):
         return url, False, 999
 
 async def scan_all_urls(scan_targets):
-    # 降低併發數 (從 25 降至 12)，防止觸發 CDN / 伺服器防刷封鎖
-    sem = asyncio.Semaphore(12)
+    sem = asyncio.Semaphore(40)
     alive_map = {}
     
     async with aiohttp.ClientSession() as session:
         tasks = [check_single_url(session, url, sem) for url in scan_targets]
         try:
-            # 延長整體異步等待超時至 60 秒
-            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=60.0)
+            results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=18.0)
             for res in results:
                 if isinstance(res, tuple):
                     u, is_alive, delay = res
@@ -204,6 +173,7 @@ def clean_filter_smart_merge():
                 if name_match:
                     raw_name = name_match.group(1).strip()
 
+                    # 針對影視或平台類直播保留全名，避免過度清理導致相同頻道名覆蓋合併
                     if is_zbds or is_platform:
                         clean_name = raw_name
                     else:
@@ -227,7 +197,7 @@ def clean_filter_smart_merge():
                         "logo_str": logo_str,
                         "tvg_id_str": tvg_id_str,
                         "raw_group": raw_g_name,
-                        "src_url": src_url
+                        "src_url": src_url # 紀錄資料來源網址
                     }
             elif line.startswith("http") and current_group and current_name:
                 key = f"{current_group}___{current_name}"
@@ -247,9 +217,10 @@ def clean_filter_smart_merge():
     all_urls = list(set([u for ch in channels.values() for u in ch["urls"]]))
     print(f"解析完成！共獲取 {len(channels)} 個頻道/電影項目，開始掃描 {len(all_urls)} 條線路...", flush=True)
 
+    # 預處理階段：特定來源直接判定存活
     alive_urls_map = {}
     for u in all_urls:
-        if any(k in u.lower() for k in ["4gtv", "zbds.top"]):
+        if any(k in u.lower() for k in ["4gtv", "zbds.top", "live_platforms"]):
             alive_urls_map[u] = {"is_alive": True, "delay": 0.0}
 
     scan_targets = [u for u in all_urls if u not in alive_urls_map]
@@ -266,7 +237,7 @@ def clean_filter_smart_merge():
     
     def url_sort_key(u):
         info = alive_urls_map.get(u, {"is_alive": False, "delay": 999})
-        is_exempt = any(k in u.lower() for k in ["4gtv", "zbds.top"])
+        is_exempt = any(k in u.lower() for k in ["4gtv", "zbds.top", "live_platforms"])
         return (1 if info["is_alive"] else 0, 1 if is_exempt else 0, -info["delay"])
 
     def channel_group_sort_key(item):
@@ -283,9 +254,11 @@ def clean_filter_smart_merge():
         sorted_urls = sorted(ch["urls"], key=url_sort_key, reverse=True)
         src = ch.get("src_url", "")
         
-        if "live.zbds.top" in src:
+        # 【修改點】只要來源是 live_platforms.m3u 或 zbds.top，免篩選直接拿第一條線路
+        if "live_platforms.m3u" in src or "live.zbds.top" in src:
             best = sorted_urls[0] if sorted_urls else None
         else:
+            # 只有來自 live_lite.m3u 的頻道才進行存活判定
             best = next((u for u in sorted_urls if alive_urls_map.get(u, {}).get("is_alive", False)), None)
             
         if best:
