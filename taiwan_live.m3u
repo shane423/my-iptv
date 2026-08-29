@@ -4143,12 +4143,16 @@ http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34817
 http://222.128.55.152:9080/live/fc.m3u8
 #EXTINF:-1 tvg-name="中天新闻台[卡頓/失效] (4)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中天新闻台.png" group-title="台灣",中天新闻台[卡頓/失效] (4)
 http://flv3948069e.live.126.net/live/dabadqdszbtest78612.flv
+#EXTINF:-1 tvg-name="中天新闻台[卡頓/失效] (5)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中天新闻台.png" group-title="台灣",中天新闻台[卡頓/失效] (5)
+http://173.208.234.146/live/ctinews.m3u8
 #EXTINF:-1 tvg-name="中天综合台[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中天综合台.png" group-title="台灣",中天综合台[卡頓/失效] (1)
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34898
 #EXTINF:-1 tvg-name="中视 (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中视.png" group-title="台灣",中视 (1)
 https://ha.msbot.dpdns.org/4gtv_api.php?id=4
 #EXTINF:-1 tvg-name="中视[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中视.png" group-title="台灣",中视[卡頓/失效] (2)
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34897
+#EXTINF:-1 tvg-name="中视[卡頓/失效] (3)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中视.png" group-title="台灣",中视[卡頓/失效] (3)
+https://flv-play.clouda.com:80/live/JoBofCQxdo8gTBHrhliKNl8uVd7mwWMxR4Nq7qRmNbX8C.flv
 #EXTINF:-1 tvg-name="中视新闻 (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中视新闻.png" group-title="台灣",中视新闻 (1)
 https://ha.msbot.dpdns.org/4gtv_api.php?id=33
 #EXTINF:-1 tvg-name="中视新闻 (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/中视新闻.png" group-title="台灣",中视新闻 (2)
@@ -4199,6 +4203,8 @@ https://ha.msbot.dpdns.org/4gtv_api.php?id=16
 http://74.91.26.218:82/live/pts.m3u8
 #EXTINF:-1 tvg-name="公视[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/公视.png" group-title="台灣",公视[卡頓/失效] (2)
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34891
+#EXTINF:-1 tvg-name="公视[卡頓/失效] (3)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/公视.png" group-title="台灣",公视[卡頓/失效] (3)
+https://flv-play.clouda.com/live/YrdYHbh2A22u6BBE0WRfEcDLFtGNovR90ruyeOSTpl8oq.flv
 #EXTINF:-1 tvg-name="公视台语台[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/公视台语台.png" group-title="台灣",公视台语台[卡頓/失效] (1)
 http://74.91.26.218:82/live/ptsty.m3u8
 #EXTINF:-1 tvg-name="公视戏剧 (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/公视戏剧.png" group-title="台灣",公视戏剧 (1)
@@ -4231,6 +4237,8 @@ http://74.91.26.218:82/live/cts.m3u8
 https://raw.githubusercontent.com/ChiSheng9/iptv/master/TV12.m3u8
 #EXTINF:-1 tvg-name="华视[卡頓/失效] (5)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/华视.png" group-title="台灣",华视[卡頓/失效] (5)
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34887
+#EXTINF:-1 tvg-name="华视[卡頓/失效] (6)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/华视.png" group-title="台灣",华视[卡頓/失效] (6)
+https://flv-play.clouda.com/live/MuYWSLTra9haGudeonStdr3ZsjXWzT64RfMO5jp8Jcv3Z.flv
 #EXTINF:-1 tvg-name="华视新闻 (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/华视新闻.png" group-title="台灣",华视新闻 (1)
 https://ha.msbot.dpdns.org/4gtv_api.php?id=256
 #EXTINF:-1 tvg-name="华视新闻 (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/华视新闻.png" group-title="台灣",华视新闻 (2)
@@ -4251,6 +4259,8 @@ http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34852
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34811
 #EXTINF:-1 tvg-name="纬来电影台[卡頓/失效] (3)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纬来电影台.png" group-title="台灣",纬来电影台[卡頓/失效] (3)
 http://free.cnlive.club/channel/581b458b.m3u8
+#EXTINF:-1 tvg-name="纬来电影台[卡頓/失效] (4)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纬来电影台.png" group-title="台灣",纬来电影台[卡頓/失效] (4)
+https://flv-play.clouda.com/live/Ry0MO81AVT7tMdC0mAXxDkKWXVDYmPZGFf2UEwdsUP2rz.flv
 #EXTINF:-1 tvg-name="纬来精彩台[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纬来精彩台.png" group-title="台灣",纬来精彩台[卡頓/失效] (1)
 http://61.221.215.25:8800/hls/48/index.m3u8
 #EXTINF:-1 tvg-name="纬来综合台[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/纬来综合台.png" group-title="台灣",纬来综合台[卡頓/失效] (1)
@@ -4319,6 +4329,8 @@ https://cdn8.163189.xyz/live/lhox/stream.m3u8
 http://cdn8.163189.xyz/163189/lhox
 #EXTINF:-1 tvg-name="龙华偶像[卡頓/失效] (4)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华偶像.png" group-title="台灣",龙华偶像[卡頓/失效] (4)
 https://cdn8.123.rr.kg/163189/lhox
+#EXTINF:-1 tvg-name="龙华偶像[卡頓/失效] (5)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华偶像.png" group-title="台灣",龙华偶像[卡頓/失效] (5)
+https://flv-play.clouda.com/live/SwVHrss0Fpva5VRQPlgAVQcWOh2ziopzD62ywBa9x54oO.flv
 #EXTINF:-1 tvg-name="龙华戏剧[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华戏剧.png" group-title="台灣",龙华戏剧[卡頓/失效] (1)
 http://cdn8.163189.xyz/163189/lhxj
 #EXTINF:-1 tvg-name="龙华戏剧[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华戏剧.png" group-title="台灣",龙华戏剧[卡頓/失效] (2)
@@ -4345,12 +4357,16 @@ https://cdn8.163189.xyz/live/lhjd/stream.m3u8
 https://cdn8.123.rr.kg/163189/lhjd
 #EXTINF:-1 tvg-name="龙华经典[卡頓/失效] (5)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华经典.png" group-title="台灣",龙华经典[卡頓/失效] (5)
 http://cdn8.163189.xyz/163189/lhjd
+#EXTINF:-1 tvg-name="龙华经典[卡頓/失效] (6)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙华经典.png" group-title="台灣",龙华经典[卡頓/失效] (6)
+https://flv-play.clouda.com/live/Kc1PCbz9WAqwtVJ9TdusaJoKEey1sUmsRHl3pnouQXqKD.flv
 #EXTINF:-1 tvg-name="龙祥时代[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/龙祥时代.png" group-title="台灣",龙祥时代[卡頓/失效] (1)
 http://bak.dou.ddns-ip.net/api.php?n=xxxtw&id=4Vqzbo&tk=SLK5QjnsRiya
 #EXTINF:-1 tvg-name="台视[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/台视.png" group-title="台灣",台视[卡頓/失效] (1)
 http://74.91.26.218:82/live/ttv.m3u8
 #EXTINF:-1 tvg-name="台视[卡頓/失效] (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/台视.png" group-title="台灣",台视[卡頓/失效] (2)
 http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34879
+#EXTINF:-1 tvg-name="台视[卡頓/失效] (3)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/台视.png" group-title="台灣",台视[卡頓/失效] (3)
+https://flv-play.clouda.com/live/UeQDRyIALcqRe9SEG0iVsWhe9758nLw87iuCch1rvXDbb.flv
 #EXTINF:-1 tvg-name="亚洲旅游台 (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/亚洲旅游台.png" group-title="台灣",亚洲旅游台 (1)
 https://ha.msbot.dpdns.org/4gtv_api.php?id=250
 #EXTINF:-1 tvg-name="亚洲旅游台 (2)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/亚洲旅游台.png" group-title="台灣",亚洲旅游台 (2)
@@ -4453,6 +4469,12 @@ http://110.154.192.81:7788/952383261
 http://38.75.136.137:98/gslb/dsdqpub/chchd.m3u8?auth=testpub
 #EXTINF:-1 tvg-name="CHC影迷电影[卡頓/失效] (10)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/CHC影迷电影.png" group-title="電影",CHC影迷电影[卡頓/失效] (10)
 http://182.61.15.73:80/952383261
+#EXTINF:-1 tvg-name="CHC影迷电影[卡頓/失效] (11)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/CHC影迷电影.png" group-title="電影",CHC影迷电影[卡頓/失效] (11)
+http://hlsztemgsplive.miguvideo.com:8080/migu/kailu/chcymdy/50/20250415/index.m3u8?msisdn=20260829080102553040fcaf0f4903a990fc89c518bf06&mdspid=&spid=699004&netType=0&sid=5910022176&pid=2028597139&timestamp=20260829080102&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=952383261&ParentNodeID=-99&assertID=5910022176&client_ip=171.8.79.254&SecurityKey=20260829080102&promotionId=&mvid=5900006704&mcid=500020&playurlVersion=ZQ-A1-9.8.2-SNAPSHOT&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&encrypt=5ab529b5c96a0623dd2f5f63792b3190
+#EXTINF:-1 tvg-name="CHC影迷电影[卡頓/失效] (12)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/CHC影迷电影.png" group-title="電影",CHC影迷电影[卡頓/失效] (12)
+http://gslbmgsplive.miguvideo.com/migu/kailu/chcymdy/51/20250415/index.m3u8?msisdn=decedd26bfee06f3a00dda5a69863c98&mdspid=&spid=699004&netType=0&sid=5910022176&pid=2028597139&timestamp=20260829032134&Channel_ID=0116_2600034600-99000-201600010010028&ProgramID=952383261&ParentNodeID=-99&assertID=5910022176&client_ip=39.103.188.159&SecurityKey=20260829032134&promotionId=&mvid=5900006704&mcid=500020&playurlVersion=ZQ-A1-9.8.2-SNAPSHOT&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&puData=27055cfcc714c613ec415a50f6b8003f&ddCalcu=f237v00a05a85abc6ffc0c57a1541c46c1e3&sv=10004&ct=android
+#EXTINF:-1 tvg-name="CHC影迷电影[卡頓/失效] (13)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/CHC影迷电影.png" group-title="電影",CHC影迷电影[卡頓/失效] (13)
+http://hlsztemgsplive.miguvideo.com:8080/migu/kailu/chcymdy/50/20250415/index.m3u8?msisdn=20260828120104fa5fd748d7674d11bf5d28f221820198&mdspid=&spid=699004&netType=0&sid=5910022176&pid=2028597139&timestamp=20260828120104&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=952383261&ParentNodeID=-99&assertID=5910022176&client_ip=171.8.79.254&SecurityKey=20260828120104&promotionId=&mvid=5900006704&mcid=500020&playurlVersion=ZQ-A1-9.8.2-SNAPSHOT&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&encrypt=12b315bd78173ff40d9ca5c003beca09
 #EXTINF:-1 tvg-name="amc电影台[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/amc电影台.png" group-title="電影",amc电影台[卡頓/失效] (1)
 http://61.221.215.25:8800/hls/43/index.m3u8
 #EXTINF:-1 tvg-name="影迷数位电影[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/影迷数位电影.png" group-title="電影",影迷数位电影[卡頓/失效] (1)
