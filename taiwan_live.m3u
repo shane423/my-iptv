@@ -33,6 +33,10 @@ http://220.135.64.124:5050/of-4gtv-4gtv045/index.m3u8?proxy=true
 http://220.135.64.124:5050/of-4gtv-4gtv066/index.m3u8?proxy=true
 #EXTINF:-1 tvg-name="影迷数位电影" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/影迷数位电影.png" group-title="台灣_精選",影迷数位电影
 https://litv.tzh911.qzz.io/litv.php?id=4gtv-4gtv011&token=https://t.me/GPT_858
+#EXTINF:-1 tvg-name="东森洋片" tvg-id="东森洋片台" tvg-logo="https://tb.zbds.top/logo/东森洋片.png" group-title="電影_精選",东森洋片
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34904
+#EXTINF:-1 tvg-name="靖天映画" tvg-id="靖天映画" tvg-logo="https://tb.zbds.top/logo/靖天映画.png" group-title="電影_精選",靖天映画
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34838
 #EXTINF:-1 tvg-name="CHC电影" tvg-id="CHC电影" tvg-logo="https://tb.zbds.top/logo/CHC电影.png" group-title="電影_精選",CHC电影
 http://183.237.95.108:9901/tsfile/live/1008_1.m3u8?key=txiptv&playlive=0&authid=0
 #EXTINF:-1 tvg-name="东阳影视生活" tvg-id="东阳影视生活" tvg-logo="https://tb.zbds.top/logo/东阳影视生活.png" group-title="電影_精選",东阳影视生活
@@ -71,6 +75,8 @@ http://stream.hrbtv.net/yspd/sd/live.m3u8?zheild
 https://live.metshop.top/huya/29465850
 #EXTINF:-1 tvg-name="大时代" tvg-id="大时代" tvg-logo="https://tb.zbds.top/logo/大时代.png" group-title="電影_精選",大时代
 https://live.metshop.top/huya/23865161
+#EXTINF:-1 tvg-name="妙手仁心" tvg-id="妙手仁心" tvg-logo="https://tb.zbds.top/logo/妙手仁心.png" group-title="電影_精選",妙手仁心
+https://live.metshop.top/huya/29465853
 #EXTINF:-1 tvg-name="宇宙科幻合集" tvg-id="宇宙科幻合集" tvg-logo="https://tb.zbds.top/logo/宇宙科幻合集.png" group-title="電影_精選",宇宙科幻合集
 https://live.metshop.top/huya/11342428
 #EXTINF:-1 tvg-name="寒战" tvg-id="寒战" tvg-logo="https://tb.zbds.top/logo/寒战.png" group-title="電影_精選",寒战
@@ -175,24 +181,26 @@ https://live.metshop.top/huya/11342435
 https://live.metshop.top/huya/29465847
 #EXTINF:-1 tvg-name="鉴证实录" tvg-id="鉴证实录" tvg-logo="https://tb.zbds.top/logo/鉴证实录.png" group-title="電影_精選",鉴证实录
 https://live.metshop.top/huya/23903183
+#EXTINF:-1 tvg-name="陀枪师姐" tvg-id="陀枪师姐" tvg-logo="https://tb.zbds.top/logo/陀枪师姐.png" group-title="電影_精選",陀枪师姐
+https://live.metshop.top/huya/29465857
 #EXTINF:-1 tvg-name="韩国电影1" tvg-id="韩国电影1" tvg-logo="https://tb.zbds.top/logo/韩国电影1.png" group-title="電影_精選",韩国电影1
 https://stream.ads.ottera.tv/playlist.m3u8?network_id=595
 #EXTINF:-1 tvg-name="韩国电影2" tvg-id="韩国电影2" tvg-logo="https://tb.zbds.top/logo/韩国电影2.png" group-title="電影_精選",韩国电影2
 https://stream.ads.ottera.tv/playlist.m3u8?network_id=743
 #EXTINF:-1 tvg-name="黄渤电影" tvg-id="黄渤电影" tvg-logo="https://tb.zbds.top/logo/黄渤电影.png" group-title="電影_精選",黄渤电影
 https://live.metshop.top/huya/11352876
+#EXTINF:-1 tvg-name="龙祥电影" tvg-id="龙祥电影" tvg-logo="https://tb.zbds.top/logo/龙祥电影.png" group-title="電影_精選",龙祥电影
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34825
 #EXTINF:-1 tvg-name="龙门飞甲" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影_精選",龙门飞甲
 http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="金鹰卡通" tvg-id="4" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通_精選",金鹰卡通
-http://221.13.235.123:9901/tsfile/live/1010_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="金鹰卡通" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通_精選",金鹰卡通
+http://124.228.160.210:9901/tsfile/live/0011_1.m3u8?key=txiptv&playlive=1&authid=0
 #EXTINF:-1 tvg-name="浙江少儿" tvg-id="2" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通_精選",浙江少儿
 http://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
 #EXTINF:-1 tvg-name="七龙珠" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通_精選",七龙珠
 https://live.metshop.top/huya/11601966
 #EXTINF:-1 tvg-name="中华小当家" tvg-id="中华小当家" tvg-logo="https://tb.zbds.top/logo/中华小当家.png" group-title="卡通_精選",中华小当家
 https://live.metshop.top/huya/11342413
-#EXTINF:-1 tvg-name="海绵宝宝" tvg-id="海绵宝宝" tvg-logo="https://tb.zbds.top/logo/海绵宝宝.png" group-title="卡通_精選",海绵宝宝
-https://live.metshop.top/douyu/3949681
 #EXTINF:-1 tvg-name="猫和老鼠" tvg-id="猫和老鼠" tvg-logo="https://tb.zbds.top/logo/猫和老鼠.png" group-title="卡通_精選",猫和老鼠
 https://live.metshop.top/huya/11352879
 #EXTINF:-1 tvg-name="福州少儿" tvg-id="福州少儿" tvg-logo="https://tb.zbds.top/logo/福州少儿.png" group-title="卡通_精選",福州少儿
@@ -4811,6 +4819,10 @@ http://huanqiuzhibo.cn/manifest/douyu.php?id=131977
 http://huanqiuzhibo.cn/manifest/douyu.php?id=9220456
 #EXTINF:-1 tvg-name="吃米滴虫[卡頓/失效] (1)" tvg-logo="https://ghfast.top/https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/logo/吃米滴虫.png" group-title="電影",吃米滴虫[卡頓/失效] (1)
 http://huanqiuzhibo.cn/manifest/douyu.php?id=315457
+#EXTINF:-1 tvg-name="东森洋片[卡頓/失效] (1)" tvg-id="东森洋片台" tvg-logo="https://tb.zbds.top/logo/东森洋片.png" group-title="電影",东森洋片[卡頓/失效] (1)
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34904
+#EXTINF:-1 tvg-name="靖天映画[卡頓/失效] (1)" tvg-id="靖天映画" tvg-logo="https://tb.zbds.top/logo/靖天映画.png" group-title="電影",靖天映画[卡頓/失效] (1)
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34838
 #EXTINF:-1 tvg-name="CHC电影[卡頓/失效] (1)" tvg-id="CHC电影" tvg-logo="https://tb.zbds.top/logo/CHC电影.png" group-title="電影",CHC电影[卡頓/失效] (1)
 http://183.237.95.108:9901/tsfile/live/1008_1.m3u8?key=txiptv&playlive=0&authid=0
 #EXTINF:-1 tvg-name="东阳影视生活[卡頓/失效] (1)" tvg-id="东阳影视生活" tvg-logo="https://tb.zbds.top/logo/东阳影视生活.png" group-title="電影",东阳影视生活[卡頓/失效] (1)
@@ -4849,6 +4861,8 @@ http://stream.hrbtv.net/yspd/sd/live.m3u8?zheild
 https://live.metshop.top/huya/29465850
 #EXTINF:-1 tvg-name="大时代[卡頓/失效] (1)" tvg-id="大时代" tvg-logo="https://tb.zbds.top/logo/大时代.png" group-title="電影",大时代[卡頓/失效] (1)
 https://live.metshop.top/huya/23865161
+#EXTINF:-1 tvg-name="妙手仁心[卡頓/失效] (1)" tvg-id="妙手仁心" tvg-logo="https://tb.zbds.top/logo/妙手仁心.png" group-title="電影",妙手仁心[卡頓/失效] (1)
+https://live.metshop.top/huya/29465853
 #EXTINF:-1 tvg-name="宇宙科幻合集[卡頓/失效] (1)" tvg-id="宇宙科幻合集" tvg-logo="https://tb.zbds.top/logo/宇宙科幻合集.png" group-title="電影",宇宙科幻合集[卡頓/失效] (1)
 https://live.metshop.top/huya/11342428
 #EXTINF:-1 tvg-name="寒战[卡頓/失效] (1)" tvg-id="寒战" tvg-logo="https://tb.zbds.top/logo/寒战.png" group-title="電影",寒战[卡頓/失效] (1)
@@ -4953,24 +4967,26 @@ https://live.metshop.top/huya/11342435
 https://live.metshop.top/huya/29465847
 #EXTINF:-1 tvg-name="鉴证实录[卡頓/失效] (1)" tvg-id="鉴证实录" tvg-logo="https://tb.zbds.top/logo/鉴证实录.png" group-title="電影",鉴证实录[卡頓/失效] (1)
 https://live.metshop.top/huya/23903183
+#EXTINF:-1 tvg-name="陀枪师姐[卡頓/失效] (1)" tvg-id="陀枪师姐" tvg-logo="https://tb.zbds.top/logo/陀枪师姐.png" group-title="電影",陀枪师姐[卡頓/失效] (1)
+https://live.metshop.top/huya/29465857
 #EXTINF:-1 tvg-name="韩国电影1[卡頓/失效] (1)" tvg-id="韩国电影1" tvg-logo="https://tb.zbds.top/logo/韩国电影1.png" group-title="電影",韩国电影1[卡頓/失效] (1)
 https://stream.ads.ottera.tv/playlist.m3u8?network_id=595
 #EXTINF:-1 tvg-name="韩国电影2[卡頓/失效] (1)" tvg-id="韩国电影2" tvg-logo="https://tb.zbds.top/logo/韩国电影2.png" group-title="電影",韩国电影2[卡頓/失效] (1)
 https://stream.ads.ottera.tv/playlist.m3u8?network_id=743
 #EXTINF:-1 tvg-name="黄渤电影[卡頓/失效] (1)" tvg-id="黄渤电影" tvg-logo="https://tb.zbds.top/logo/黄渤电影.png" group-title="電影",黄渤电影[卡頓/失效] (1)
 https://live.metshop.top/huya/11352876
+#EXTINF:-1 tvg-name="龙祥电影[卡頓/失效] (1)" tvg-id="龙祥电影" tvg-logo="https://tb.zbds.top/logo/龙祥电影.png" group-title="電影",龙祥电影[卡頓/失效] (1)
+http://31.43.191.125:8080/vip6821768502490/6c17bae55394/34825
 #EXTINF:-1 tvg-name="龙门飞甲[卡頓/失效] (1)" tvg-id="龙门飞甲" tvg-logo="https://tb.zbds.top/logo/龙门飞甲.png" group-title="電影",龙门飞甲[卡頓/失效] (1)
 http://jsmov2.a.yximgs.com/bs3/video-hls/5203346449046555193_hlsb.m3u8
-#EXTINF:-1 tvg-name="金鹰卡通[卡頓/失效] (1)" tvg-id="4" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通",金鹰卡通[卡頓/失效] (1)
-http://221.13.235.123:9901/tsfile/live/1010_1.m3u8?key=txiptv&playlive=1&authid=0
+#EXTINF:-1 tvg-name="金鹰卡通[卡頓/失效] (1)" tvg-id="3" tvg-logo="https://tb.zbds.top/logo/金鹰卡通.png" group-title="卡通",金鹰卡通[卡頓/失效] (1)
+http://124.228.160.210:9901/tsfile/live/0011_1.m3u8?key=txiptv&playlive=1&authid=0
 #EXTINF:-1 tvg-name="浙江少儿[卡頓/失效] (1)" tvg-id="2" tvg-logo="https://tb.zbds.top/logo/浙江少儿.png" group-title="卡通",浙江少儿[卡頓/失效] (1)
 http://ali-m-l.cztv.com/channels/lantian/channel008/1080p.m3u8
 #EXTINF:-1 tvg-name="七龙珠[卡頓/失效] (1)" tvg-id="七龙珠" tvg-logo="https://tb.zbds.top/logo/七龙珠.png" group-title="卡通",七龙珠[卡頓/失效] (1)
 https://live.metshop.top/huya/11601966
 #EXTINF:-1 tvg-name="中华小当家[卡頓/失效] (1)" tvg-id="中华小当家" tvg-logo="https://tb.zbds.top/logo/中华小当家.png" group-title="卡通",中华小当家[卡頓/失效] (1)
 https://live.metshop.top/huya/11342413
-#EXTINF:-1 tvg-name="海绵宝宝[卡頓/失效] (1)" tvg-id="海绵宝宝" tvg-logo="https://tb.zbds.top/logo/海绵宝宝.png" group-title="卡通",海绵宝宝[卡頓/失效] (1)
-https://live.metshop.top/douyu/3949681
 #EXTINF:-1 tvg-name="猫和老鼠[卡頓/失效] (1)" tvg-id="猫和老鼠" tvg-logo="https://tb.zbds.top/logo/猫和老鼠.png" group-title="卡通",猫和老鼠[卡頓/失效] (1)
 https://live.metshop.top/huya/11352879
 #EXTINF:-1 tvg-name="福州少儿[卡頓/失效] (1)" tvg-id="福州少儿" tvg-logo="https://tb.zbds.top/logo/福州少儿.png" group-title="卡通",福州少儿[卡頓/失效] (1)
