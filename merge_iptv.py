@@ -4,14 +4,6 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 嘗試載入 OpenCC 進行簡繁轉換
-try:
-    from opencc import OpenCC
-    cc = OpenCC('s2twp')
-except ImportError:
-    cc = None
-    print("提示：未檢測到 opencc-python-reimplemented 庫，將不會進行簡繁轉換。")
-
 # 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
 SOURCE_TARGET_GROUPS = {
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
@@ -31,6 +23,7 @@ GROUP_NAME_MAP = {
     "电影": "電影",
     "电影频道": "電影",
     "儿童频道": "卡通",
+    # 將平台類新群組統一對應至「其他」
     "zonghe": "其他",
     "一起看": "其他",
     "原创": "其他",
@@ -40,7 +33,7 @@ GROUP_NAME_MAP = {
 # 定義群組的指定輸出順序
 ORDERED_GROUPS = ["台灣", "電影", "卡通", "其他"]
 
-# 定義 live_platforms.m3u 子群組的排序權重
+# 定義 live_platforms.m3u 子群組的排序權重 (zonghe 在最上面)
 PLATFORM_GROUP_ORDER = {
     "zonghe": 1,
     "一起看": 2,
@@ -48,14 +41,12 @@ PLATFORM_GROUP_ORDER = {
     "原创IP": 4
 }
 
-# 其他來源的頻道過濾黑名單（保留簡體或繁體皆可，因比對原始名稱）
+# 其他來源的頻道過濾黑名單
 EXCLUDE_CHANNELS = {
     "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
     "TVB星河", "TVB翡翠台", "TVB翡翠", "无线新闻",
-    "星空卫视", "CHANNEL[V]", "VIUTV",
-    "鳳凰中文", "鳳凰資訊", "鳳凰香港", "鳳凰電影", "無線新聞", "星空衛視"
-    "Channel[V]", "TVBPearl", "TVBPlus"
+    "星空卫视", "CHANNEL[V]", "VIUTV"
 }
 
 HEADERS = {
@@ -82,7 +73,7 @@ def fetch_and_categorize():
 
         current_group = None
         current_raw_group = None
-        current_display_name = None
+        current_name = None
         current_raw_info = {}
 
         for idx, line in enumerate(lines):
@@ -97,6 +88,7 @@ def fetch_and_categorize():
                 group_match = re.search(r'group-title=["\']?([^"\',]+)["\']?', line)
                 raw_g_name = group_match.group(1).strip() if group_match else "其他"
                 
+                # 如果不在指定的群組內則跳過
                 if raw_g_name not in allowed_groups:
                     current_group = None
                     current_raw_group = None
@@ -108,51 +100,38 @@ def fetch_and_categorize():
                 if name_match:
                     raw_name = name_match.group(1).strip()
 
-                    # 檢查黑名單（比對原始名稱）
+                    # 保留原始名稱，不做任何清理與刪減
+                    clean_name = raw_name
+
+                    # 檢查黑名單
                     if not (is_zbds or is_platform):
-                        if any(b in raw_name for b in EXCLUDE_CHANNELS):
+                        if any(b in raw_name.upper() for b in EXCLUDE_CHANNELS):
                             current_group = None
                             current_raw_group = None
                             continue
 
-                    # 擷取原始的 tvg-name（若有），保留給 EPG 匹配用
-                    tvg_name_match = re.search(r'tvg-name=["\']([^"\']+)["\']', line)
-                    if tvg_name_match:
-                        raw_tvg_name = tvg_name_match.group(1)
-                    else:
-                        raw_tvg_name = raw_name # 如果原本沒有，用原始名稱填補
-
-                    # 顯示名稱轉為繁體中文（給介面看）
-                    display_name = cc.convert(raw_name) if cc else raw_name
-
                     logo_match = re.search(r'tvg-logo=["\']([^"\']+)["\']', line)
                     tvg_id_match = re.search(r'tvg-id=["\']([^"\']+)["\']', line)
-                    
                     logo_str = f' tvg-logo="{logo_match.group(1)}"' if logo_match else ""
                     tvg_id_str = f' tvg-id="{tvg_id_match.group(1)}"' if tvg_id_match else ""
-                    
-                    # 關鍵：保留原始簡體 tvg-name 確保 EPG 不失效
-                    tvg_name_str = f' tvg-name="{raw_tvg_name}"'
 
                     current_group = g_name
                     current_raw_group = raw_g_name
-                    current_display_name = display_name
+                    current_name = clean_name
                     current_raw_info = {
                         "logo_str": logo_str,
                         "tvg_id_str": tvg_id_str,
-                        "tvg_name_str": tvg_name_str,
                         "raw_group": raw_g_name
                     }
-            elif line.startswith("http") and current_group and current_display_name:
-                key = f"{current_group}___{current_display_name}"
+            elif line.startswith("http") and current_group and current_name:
+                key = f"{current_group}___{current_name}"
                 if key not in channels:
                     channels[key] = {
                         "group": current_group,
                         "raw_group": current_raw_group,
-                        "display_name": current_display_name,
+                        "name": current_name,
                         "logo_str": current_raw_info.get("logo_str", ""),
                         "tvg_id_str": current_raw_info.get("tvg_id_str", ""),
-                        "tvg_name_str": current_raw_info.get("tvg_name_str", ""),
                         "urls": []
                     }
                 if line not in channels[key]["urls"]:
@@ -171,18 +150,17 @@ def fetch_and_categorize():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 輸出：tvg-name 維持原樣（救回節目表），逗號後顯示名稱改為繁體
+    # 輸出所有頻道，名稱維持原樣，不加序號
     for key, ch in sorted_channels:
-        d_name = ch['display_name']
+        name = ch['name']
         for url in ch["urls"]:
-            extinf_line = f'#EXTINF:-1{ch["tvg_name_str"]}{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{d_name}'
-            output.append(extinf_line)
+            output.append(f'#EXTINF:-1 tvg-name="{name}"{ch["tvg_id_str"]}{ch["logo_str"]} group-title="{ch["group"]}",{name}')
             output.append(url)
 
     with open("taiwan_live.m3u", "w", encoding="utf-8") as f:
         f.write("\n".join(output))
 
-    print("【成功完成！】雙軌 M3U 檔案已儲存為 taiwan_live.m3u。", flush=True)
+    print("【成功完成！】檔案已儲存為 taiwan_live.m3u。", flush=True)
 
 if __name__ == "__main__":
     fetch_and_categorize()
