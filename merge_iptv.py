@@ -4,6 +4,15 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 嘗試載入 OpenCC 進行簡繁轉換（支援台灣正體與慣用語）
+try:
+    from opencc import OpenCC
+    # 's2twp'：簡體到台灣正體，並自動轉換慣用語（例如：軟件轉軟體、網路等）
+    cc = OpenCC('s2twp')
+except ImportError:
+    cc = None
+    print("提示：未檢測到 opencc-python-reimplemented 庫，將不會進行簡繁轉換。")
+
 # 定義各 M3U 來源網址及其「指定抓取」的群組名稱（精確對應）
 SOURCE_TARGET_GROUPS = {
     "https://raw.githubusercontent.com/CCSH/IPTV/refs/heads/main/live_lite.m3u": {
@@ -41,12 +50,12 @@ PLATFORM_GROUP_ORDER = {
     "原创IP": 4
 }
 
-# 其他來源的頻道過濾黑名單
+# 其他來源的頻道過濾黑名單（已轉為繁體，適配轉換後的名稱）
 EXCLUDE_CHANNELS = {
-    "凤凰中文", "凤凰资讯", "凤凰香港", "凤凰电影",
+    "鳳凰中文", "鳳凰資訊", "鳳凰香港", "鳳凰電影",
     "TVBPEARL", "TVB PEARL", "TVB明珠台", "TVBPLUS", "TVB PLUS", "TVBJ2",
-    "TVB星河", "TVB翡翠台", "TVB翡翠", "无线新闻",
-    "星空卫视", "CHANNEL[V]", "VIUTV"
+    "TVB星河", "TVB翡翠台", "TVB翡翠", "無線新聞",
+    "星空衛視", "CHANNEL[V]", "VIUTV"
 }
 
 HEADERS = {
@@ -100,12 +109,15 @@ def fetch_and_categorize():
                 if name_match:
                     raw_name = name_match.group(1).strip()
 
-                    # 保留原始名稱，不做任何清理與刪減
-                    clean_name = raw_name
+                    # 核心修改：使用 OpenCC 將頻道名稱轉為繁體中文（台灣正體）
+                    if cc:
+                        clean_name = cc.convert(raw_name)
+                    else:
+                        clean_name = raw_name
 
-                    # 檢查黑名單
+                    # 檢查黑名單（比對轉換後的繁體名稱）
                     if not (is_zbds or is_platform):
-                        if any(b in raw_name.upper() for b in EXCLUDE_CHANNELS):
+                        if any(b in clean_name.upper() for b in EXCLUDE_CHANNELS):
                             current_group = None
                             current_raw_group = None
                             continue
@@ -150,7 +162,7 @@ def fetch_and_categorize():
 
     sorted_channels = sorted(channels.items(), key=channel_group_sort_key)
 
-    # 輸出所有頻道，名稱維持原樣，不加序號
+    # 輸出所有頻道，名稱已全面轉為繁體中文
     for key, ch in sorted_channels:
         name = ch['name']
         for url in ch["urls"]:
