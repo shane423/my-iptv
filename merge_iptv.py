@@ -55,6 +55,7 @@ EXCLUDE_CHANNELS = {
     "TVB星河", "TVB翡翠台", "TVB翡翠", "无线新闻",
     "星空卫视", "CHANNEL[V]", "VIUTV",
     "鳳凰中文", "鳳凰資訊", "鳳凰香港", "鳳凰電影", "無線新聞", "星空衛視"
+    "Channel[V]", "TVBPearl", "TVBPlus"
 }
 
 HEADERS = {
